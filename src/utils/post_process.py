@@ -38,6 +38,16 @@ def post_process_for_seg(
                     }
                 )
 
+    if len(records) == 0: # 一つも予測がない場合はdummyを入れる
+        records.append(
+            {
+                "series_id": series_id,
+                "step": 0,
+                "event": "onset",
+                "score": 0.5,
+            }
+        )
+
     sub_df = pl.DataFrame(records).sort(by=["series_id", "step"])
     row_ids = pl.Series(name="row_id", values=np.arange(len(sub_df)))
     sub_df = sub_df.with_columns(row_ids).select(["row_id", "series_id", "step", "event", "score"])
