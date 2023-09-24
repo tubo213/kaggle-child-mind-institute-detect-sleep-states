@@ -1,7 +1,6 @@
 {
   // ルーラー
   "editor.rulers": [
-    80,
     99
   ],
   // python path
