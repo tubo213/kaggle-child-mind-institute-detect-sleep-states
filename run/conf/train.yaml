@@ -1,7 +1,7 @@
 # ---------- Overriding hydra default configs ----------
 hydra:
   job:
-    name: prepare_data
+    name: train
     chdir: true
   run:
     dir: ${dir.output_dir}/${hydra.job.name}/${hydra.job.override_dirname}
