@@ -21,8 +21,8 @@ duration: 1024
 
 # training
 epoch: 5
-batch_size: 32
-num_workers: 2
+batch_size: 64
+num_workers: 24
 use_amp: true
 debug: false
 gradient_clip_val: 1.0

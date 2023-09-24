@@ -61,7 +61,7 @@ def main(cfg: DictConfig):  # type: ignore
         callbacks=[checkpoint_cb, lr_monitor],
         logger=pl_logger,
         # resume_from_checkpoint=resume_from,
-        num_sanity_val_steps=0 if is_test_mode else 2,
+        num_sanity_val_steps=0,
         log_every_n_steps=int(len(datamodule.train_dataloader()) * 0.1),
         sync_batchnorm=True,
     )
