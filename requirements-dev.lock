@@ -140,6 +140,7 @@ rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
 rich==13.5.3
 rpds-py==0.10.3
+ruff==0.0.291
 scikit-learn==1.3.1
 scipy==1.11.2
 seaborn==0.12.2

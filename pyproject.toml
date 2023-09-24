@@ -39,24 +39,21 @@ dev-dependencies = [
     "flake8>=5.0.4",
     "isort>=5.12.0",
     "mypy>=1.4.1",
-    "jupyter>=1.0.0",
+    "jupyter>=1.0.0", "ruff~=0.0.291",
 ]
 
 [tool.black]
 line-length = 99
 
-[tool.flake8]
-max-line-length = 99
-max-complexity = 20
-ignore = [
-    "W293",
-    "W503",
-    "W504",
-    "E402",
-    "F401",
-    "F403",
-    "E203"
+[tool.ruff]
+select = [
+    "F", # pyflakes
+    "E", # pycodestyle
+    "W", # pycodestyle warnings
+    "I", # isort
 ]
+ignore = []
+line-length = 88
 
 
 [tool.hatch.metadata]
