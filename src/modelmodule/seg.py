@@ -1,5 +1,7 @@
 from typing import Optional
 
+import numpy as np
+import polars as pl
 import torch
 import torch.optim as optim
 from omegaconf import DictConfig
@@ -9,10 +11,17 @@ from transformers import get_cosine_schedule_with_warmup
 from src.models.seg.model import get_model
 from src.utils.metrics import event_detection_ap
 from src.utils.post_process import post_process_for_seg
-import polars as pl
+
 
 class SegModel(LightningModule):
-    def __init__(self, cfg: DictConfig, val_event_df: pl.DataFrame, feature_dim: int, num_classes: int, duration: int):
+    def __init__(
+        self,
+        cfg: DictConfig,
+        val_event_df: pl.DataFrame,
+        feature_dim: int,
+        num_classes: int,
+        duration: int,
+    ):
         super().__init__()
         self.cfg = cfg
         self.val_event_df = val_event_df
@@ -45,7 +54,9 @@ class SegModel(LightningModule):
                 prog_bar=True,
             )
         elif mode == "val":
-            self.validation_step_outputs.append((batch["key"], logits.detach().cpu()))
+            self.validation_step_outputs.append(
+                (batch["key"], batch["label"].detach().cpu(), logits.detach().cpu())
+            )
             self.log(
                 f"{mode}_loss",
                 loss.detach().item(),
@@ -58,10 +69,21 @@ class SegModel(LightningModule):
         return loss
 
     def on_validation_epoch_end(self):
-        preds = torch.concat([x[1] for x in self.validation_step_outputs]).sigmoid().detach().cpu()
         keys = []
         for x in self.validation_step_outputs:
             keys.extend(x[0])
+        labels = torch.concat([x[1] for x in self.validation_step_outputs]).detach().cpu().numpy()
+        preds = (
+            torch.concat([x[2] for x in self.validation_step_outputs])
+            .sigmoid()
+            .detach()
+            .cpu()
+            .numpy()
+        )
+
+        np.save("keys.npy", np.array(keys))
+        np.save("labels.npy", labels)
+        np.save("preds.npy", preds)
 
         val_pred_df = post_process_for_seg(
             keys=keys, preds=preds, score_th=self.cfg.post_process.score_th
