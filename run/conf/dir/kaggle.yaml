@@ -1,0 +1,3 @@
+data_dir: /kaggle/input/child-mind-institute-detect-sleep-states
+processed_dir: /kaggle/working/processed_data
+output_dir: /kaggle/working/output
