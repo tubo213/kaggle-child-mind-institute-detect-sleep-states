@@ -1,0 +1,16 @@
+# ---------- Overriding hydra default configs ----------
+hydra:
+  job:
+    name: prepare_data
+    chdir: true
+  run:
+    dir: ${dir.output_dir}/${hydra.job.name}/${hydra.job.override_dirname}
+  sweep:
+    dir: ${dir.output_dir}/${hydra.job.name}/
+    subdir: ${hydra.job.override_dirname}
+
+defaults:
+  - _self_
+  - dir: local
+
+train_or_test: train
