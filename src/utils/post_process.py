@@ -42,4 +42,3 @@ def post_process_for_seg(
     row_ids = pl.Series(name="row_id", values=np.arange(len(sub_df)))
     sub_df = sub_df.with_columns(row_ids).select(["row_id", "series_id", "step", "event", "score"])
     return sub_df
-    return sub_df

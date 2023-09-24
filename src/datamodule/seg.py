@@ -284,56 +284,56 @@ class SegDataModule(LightningDataModule):
         self.data_dir = Path(cfg.dir.data_dir)
         self.processed_dir = Path(cfg.dir.processed_dir)
 
-    def setup(self, stage: str) -> None:
-        if stage == "fit" or stage == "validate" or stage is None:
-            self.event_df = pl.read_csv(self.data_dir / "train_events.csv")
-            self.train_event_df = self.event_df.filter(
-                pl.col("series_id").is_in(self.cfg.train_series_ids)
-            ).drop_nulls()
-            self.valid_event_df = self.event_df.filter(
-                pl.col("series_id").is_in(self.cfg.valid_series_ids)
-            ).drop_nulls()
-            # train data
-            self.train_features = load_features(
-                feature_names=self.cfg.features,
-                series_ids=self.cfg.train_series_ids,
-                processed_dir=self.processed_dir,
-                train_or_test="train",
-            )
-            self.train_labels = load_labels(
-                label_names=self.cfg.labels,
-                series_ids=self.cfg.train_series_ids,
-                processed_dir=self.processed_dir,
-            )
-            self.train_masks = load_masks(
-                series_ids=self.cfg.train_series_ids,
-                processed_dir=self.processed_dir,
-            )
+    # def setup(self, stage: str) -> None:
+    #     if stage == "fit" or stage == "validate" or stage is None:
+        self.event_df = pl.read_csv(self.data_dir / "train_events.csv")
+        self.train_event_df = self.event_df.filter(
+            pl.col("series_id").is_in(self.cfg.split.train_series_ids)
+        ).drop_nulls()
+        self.valid_event_df = self.event_df.filter(
+            pl.col("series_id").is_in(self.cfg.split.valid_series_ids)
+        ).drop_nulls()
+        # train data
+        self.train_features = load_features(
+            feature_names=self.cfg.features,
+            series_ids=self.cfg.split.train_series_ids,
+            processed_dir=self.processed_dir,
+            train_or_test="train",
+        )
+        self.train_labels = load_labels(
+            label_names=self.cfg.labels,
+            series_ids=self.cfg.split.train_series_ids,
+            processed_dir=self.processed_dir,
+        )
+        self.train_masks = load_masks(
+            series_ids=self.cfg.split.train_series_ids,
+            processed_dir=self.processed_dir,
+        )
 
-            # valid data
-            self.valid_chunk_features = load_chunk_features(
-                duration=self.cfg.duration,
-                feature_names=self.cfg.features,
-                series_ids=self.cfg.valid_series_ids,
-                processed_dir=self.processed_dir,
-                train_or_test="train",
-            )
-            self.valid_chunk_labels = load_chunk_labels(
-                duration=self.cfg.duration,
-                label_names=self.cfg.labels,
-                series_ids=self.cfg.valid_series_ids,
-                processed_dir=self.processed_dir,
-            )
+        # valid data
+        self.valid_chunk_features = load_chunk_features(
+            duration=self.cfg.duration,
+            feature_names=self.cfg.features,
+            series_ids=self.cfg.split.valid_series_ids,
+            processed_dir=self.processed_dir,
+            train_or_test="train",
+        )
+        self.valid_chunk_labels = load_chunk_labels(
+            duration=self.cfg.duration,
+            label_names=self.cfg.labels,
+            series_ids=self.cfg.split.valid_series_ids,
+            processed_dir=self.processed_dir,
+        )
 
-        if stage == "test" or stage == "predict" or stage is None:
-            # test data
-            self.test_chunk_features = load_chunk_features(
-                duration=self.cfg.duration,
-                feature_names=self.cfg.features,
-                series_ids=None,
-                processed_dir=self.processed_dir,
-                train_or_test="test",
-            )
+    # if stage == "test" or stage == "predict" or stage is None:
+        # test data
+        self.test_chunk_features = load_chunk_features(
+            duration=self.cfg.duration,
+            feature_names=self.cfg.features,
+            series_ids=None,
+            processed_dir=self.processed_dir,
+            train_or_test="test",
+        )
 
     def train_dataloader(self):
         train_dataset = TrainDataset(

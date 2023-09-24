@@ -1,0 +1,64 @@
+# ---------- Overriding hydra default configs ----------
+hydra:
+  job:
+    name: prepare_data
+    chdir: true
+  run:
+    dir: ${dir.output_dir}/${hydra.job.name}/${hydra.job.override_dirname}
+  sweep:
+    dir: ${dir.output_dir}/${hydra.job.name}/
+    subdir: ${hydra.job.override_dirname}
+
+defaults:
+  - _self_
+  - dir: local
+  - model: unet1d
+  - split: fold_0
+
+seed: 42
+exp_name: dummy
+duration: 1024
+
+# training
+epoch: 5
+batch_size: 32
+num_workers: 2
+use_amp: true
+debug: false
+gradient_clip_val: 1.0
+accumulate_grad_batches: 1
+monitor: val_score
+monitor_mode: max
+
+# Dataset
+offset: 32
+sigma: 10
+bg_sampling_rate: 0.5
+
+# post_process
+post_process:
+  score_th: 0.5
+
+# label
+labels:
+  - "event_onset"
+  - "event_wakeup"
+
+# feature
+features:
+  - "anglez"
+  - "enmo"
+  - "month_sin"
+  - "month_cos"
+  - "hour_sin"
+  - "hour_cos"
+  - "minute_sin"
+  - "minute_cos"
+
+# optimizer
+optimizer:
+  lr: 0.0005
+
+# scheduler
+scheduler:
+  num_warmup_steps: 0

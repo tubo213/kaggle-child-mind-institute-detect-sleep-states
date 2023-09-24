@@ -13,7 +13,6 @@ def get_model(cfg: DictConfig, feature_dim: int, num_classes: int, duration: int
                 duration=duration,
                 **cfg.model.params,
             )
-            ** cfg.model.params
         )
     else:
         raise ValueError(f"Invalid model name: {cfg.model.name}")

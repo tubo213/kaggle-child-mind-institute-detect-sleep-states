@@ -9,12 +9,13 @@ from transformers import get_cosine_schedule_with_warmup
 from src.models.seg.model import get_model
 from src.utils.metrics import event_detection_ap
 from src.utils.post_process import post_process_for_seg
-
+import polars as pl
 
 class SegModel(LightningModule):
-    def __init__(self, cfg: DictConfig, feature_dim: int, num_classes: int, duration: int):
+    def __init__(self, cfg: DictConfig, val_event_df: pl.DataFrame, feature_dim: int, num_classes: int, duration: int):
         super().__init__()
         self.cfg = cfg
+        self.val_event_df = val_event_df
         self.model = get_model(cfg, feature_dim, num_classes, duration)
         self.validation_step_outputs: list = []
 
@@ -30,7 +31,7 @@ class SegModel(LightningModule):
         return self.__share_step(batch, "val")
 
     def __share_step(self, batch, mode: str) -> torch.Tensor:
-        output = self.model(batch["features"], batch["labels"])
+        output = self.model(batch["feature"], batch["label"])
         loss = output["loss"]
         logits = output["logits"]
 
@@ -57,7 +58,7 @@ class SegModel(LightningModule):
         return loss
 
     def on_validation_epoch_end(self):
-        preds = torch.concat([x[1] for x in self.validation_step_outputs]).sigmoid().numpy()
+        preds = torch.concat([x[1] for x in self.validation_step_outputs]).sigmoid().detach().cpu()
         keys = []
         for x in self.validation_step_outputs:
             keys.extend(x[0])
