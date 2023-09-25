@@ -1,9 +1,10 @@
 import numpy as np
 import polars as pl
+from scipy.signal import find_peaks
 
 
 def post_process_for_seg(
-    keys: list[str], preds: np.ndarray, score_th: float = 0.5
+    keys: list[str], preds: np.ndarray, score_th: float = 0.01, distance: int = 5000
 ) -> pl.DataFrame:
     """make submission dataframe for segmentation task
 
@@ -25,7 +26,7 @@ def post_process_for_seg(
 
         for i, event_name in enumerate(["onset", "wakeup"]):
             this_event_preds = this_series_preds[:, i]
-            steps = np.where(this_event_preds > score_th)[0]
+            steps = find_peaks(this_event_preds, height=score_th, distance=distance)[0]
             scores = this_event_preds[steps]
 
             for step, score in zip(steps, scores):
@@ -38,7 +39,7 @@ def post_process_for_seg(
                     }
                 )
 
-    if len(records) == 0: # 一つも予測がない場合はdummyを入れる
+    if len(records) == 0:  # 一つも予測がない場合はdummyを入れる
         records.append(
             {
                 "series_id": series_id,
