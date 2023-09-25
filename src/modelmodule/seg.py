@@ -6,6 +6,7 @@ import torch
 import torch.optim as optim
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
+from sklearn.metrics import average_precision_score
 from transformers import get_cosine_schedule_with_warmup
 
 from src.models.seg.model import get_model
@@ -86,9 +87,14 @@ class SegModel(LightningModule):
         np.save("preds.npy", preds)
 
         val_pred_df = post_process_for_seg(
-            keys=keys, preds=preds, score_th=self.cfg.post_process.score_th
+            keys=keys,
+            preds=preds,
+            score_th=self.cfg.post_process.score_th,
+            distance=self.cfg.post_process.distance,
         )
+        val_pred_df.write_csv("val_pred_df.csv")
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
+        # score = average_precision_score((labels == 1).reshape(-1, 2), preds.reshape(-1, 2))
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
 
         self.validation_step_outputs.clear()

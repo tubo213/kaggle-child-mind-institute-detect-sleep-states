@@ -1,0 +1,4 @@
+name: SegTransformer
+params:
+  nhead: 8
+  num_layers: 4

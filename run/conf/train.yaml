@@ -17,7 +17,7 @@ defaults:
 
 seed: 42
 exp_name: dummy
-duration: 1024
+duration: 512
 
 # training
 epoch: 5
@@ -29,15 +29,17 @@ gradient_clip_val: 1.0
 accumulate_grad_batches: 1
 monitor: val_score
 monitor_mode: max
+check_val_every_n_epoch: 1
 
 # Dataset
-offset: 32
+offset: 10
 sigma: 10
-bg_sampling_rate: 0.5
+bg_sampling_rate: 0.3
 
 # post_process
 post_process:
-  score_th: 0.5
+  score_th: 0.01
+  distance: 5000
 
 # label
 labels:
