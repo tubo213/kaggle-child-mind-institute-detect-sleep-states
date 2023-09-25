@@ -48,6 +48,7 @@ def make_feature_df(series_df: pl.DataFrame):
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
         *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
         (pl.col("anglez") - (-90)) / (90 - (-90)),
+        (pl.col("enmo") - pl.col('enmo').min()) / (pl.col('enmo').max() - pl.col('enmo').min()),
     )
     return series_df
 
