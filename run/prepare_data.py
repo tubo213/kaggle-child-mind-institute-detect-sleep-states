@@ -6,6 +6,14 @@ import polars as pl
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+SERIES_SCHEMA = {
+    "series_id": pl.Utf8,
+    "step": pl.UInt32,
+    "anglez": pl.Float32,
+    "enmo": pl.Float32,
+}
+
+
 FEATURE_NAMES = [
     "anglez",
     "enmo",
@@ -46,8 +54,14 @@ def save_each_series(this_series_df: pl.DataFrame, columns: list[str], output_di
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
 def main(cfg: DictConfig):
     # Read series_df
-    series_df = pl.read_parquet(
-        Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet", low_memory=True
+    series_df = (
+        pl.scan_parquet(
+            Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet", low_memory=True
+        )
+        .with_columns(
+            *[pl.col(col_name).cast(SERIES_SCHEMA[col_name]) for col_name in SERIES_SCHEMA]
+        )
+        .collect()
     )
 
     for series_id, this_series_df in tqdm(
