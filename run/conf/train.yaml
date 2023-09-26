@@ -40,7 +40,7 @@ hop_length: 3
 
 # post_process
 post_process:
-  score_th: 0.2
+  score_th: 0.05
   distance: 1666
 
 # label
