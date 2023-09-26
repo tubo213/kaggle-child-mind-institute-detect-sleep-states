@@ -79,6 +79,7 @@ def main(cfg: DictConfig):
     if "kaggle" in cfg.dir.data_dir:
         import cudf  # noqa
 
+        print("use cudf!!!!!!!!!!!!")
         series_df = cudf.read_parquet(
             Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet"
         )
