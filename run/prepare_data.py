@@ -95,24 +95,23 @@ def main(cfg: DictConfig):
     unique_series_ids = series_df["series_id"].unique()
     for series_id in tqdm(unique_series_ids):
         this_series_df = series_df.filter(pl.col("series_id") == series_id)
-        with trace(f"series_id: {series_id}"):
-            # 特徴量を追加
-            feature_df = make_feature_df(this_series_df)
+        # 特徴量を追加
+        feature_df = make_feature_df(this_series_df)
 
-            # series_id毎に特徴量をそれぞれnpyで保存
-            feature_output_dir = (
-                Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features" / series_id
+        # series_id毎に特徴量をそれぞれnpyで保存
+        feature_output_dir = (
+            Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features" / series_id
+        )
+        if cfg.train_or_test_or_dev == "train":
+            save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
+        else:
+            save_chunk_each_series(
+                series_id,
+                feature_df,
+                FEATURE_NAMES,
+                cfg.duration,
+                Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
             )
-            if cfg.train_or_test_or_dev == "train":
-                save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
-            else:
-                save_chunk_each_series(
-                    series_id,
-                    feature_df,
-                    FEATURE_NAMES,
-                    cfg.duration,
-                    Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
-                )
         series_df = series_df.filter(pl.col("series_id") != series_id) # これでメモリを節約できる
 
 
