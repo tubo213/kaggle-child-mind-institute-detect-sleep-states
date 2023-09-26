@@ -47,23 +47,10 @@ def make_feature_df(series_df: pl.DataFrame):
         *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
         *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
-        (pl.col("anglez") - (-90)) / (90 - (-90)),
-        (pl.col("enmo") - pl.col("enmo").min()) / (pl.col("enmo").max() - pl.col("enmo").min()),
+        # (pl.col("anglez") - (-90)) / (90 - (-90)),
+        # (pl.col("enmo") - pl.col("enmo").min()) / (pl.col("enmo").max() - pl.col("enmo").min()),
     )
     return series_df
-
-
-def make_label_df(series_df: pl.DataFrame, event_df: pl.DataFrame):
-    label_df = series_df.select(["series_id", "step"]).join(
-        event_df.select(["series_id", "step", "event", "awake"]),
-        on=["series_id", "step"],
-        how="left",
-    )
-    label_df = label_df.with_columns(
-        pl.col("awake").fill_null(strategy="backward").over("series_id").fill_null(1).cast(pl.Int8)
-    )
-    label_df = label_df.to_dummies("event")
-    return label_df
 
 
 def save_for_each_series_id(df: pl.DataFrame, columns: list[str], output_dir: Path):
@@ -93,30 +80,6 @@ def main(cfg: DictConfig):
     # series_id毎に特徴量をそれぞれnpyで保存
     feature_output_dir = Path(cfg.dir.processed_dir) / cfg.train_or_test / "features"
     save_for_each_series_id(feature_df, FEATURE_NAMES, feature_output_dir)
-
-    # trainの場合はlabelを作成
-    if cfg.train_or_test == "train":
-        # Read event_df
-        event_df = pl.read_csv(Path(cfg.dir.data_dir) / "train_events.csv", dtypes=EVENT_SCHEMA)
-
-        # Drop null event
-        event_df = event_df.drop_nulls()
-
-        # awake追加
-        event_df = event_df.with_columns(
-            pl.col("event").map(lambda s: s == "onset").alias("awake")
-        )
-
-        # labelを作成
-        label_df = make_label_df(series_df, event_df)
-
-        # series_id毎にlabelをそれぞれnpyで保存
-        label_output_dir = Path(cfg.dir.processed_dir) / cfg.train_or_test / "labels"
-        save_for_each_series_id(label_df, EVENT_NAMES, label_output_dir)
-    elif cfg.train_or_test == "test":
-        pass
-    else:
-        raise ValueError(f"Invalid train_or_test: {cfg.train_or_test}")
 
 
 if __name__ == "__main__":
