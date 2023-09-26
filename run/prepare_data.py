@@ -6,7 +6,7 @@ import polars as pl
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from src.utils.common import pad_if_needed
+from src.utils.common import pad_if_needed, trace
 
 SERIES_SCHEMA = {
     "series_id": pl.Utf8,
@@ -38,9 +38,9 @@ def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
 
 def make_feature_df(series_df: pl.DataFrame):
     series_df = series_df.with_columns(
-        *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
-        *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
-        *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
+        *to_coord(pl.col("month"), 12, "month"),
+        *to_coord(pl.col("hour"), 24, "hour"),
+        *to_coord(pl.col("minute"), 60, "minute"),
     )
     return series_df
 
@@ -76,19 +76,31 @@ def save_chunk_each_series(
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
 def main(cfg: DictConfig):
     # Read series_df
-
-    series_df = pl.read_parquet(
-        Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet"
-    )
-
-    for series_id, this_series_df in tqdm(
-        series_df.groupby("series_id"), desc="generate features"
-    ):
-        # cast series_df to appropriate type
-        this_series_df = this_series_df.with_columns(
-            pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
+    with trace("read series_df"):
+        series_df = (
+            pl.scan_parquet(
+                Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet",
+                low_memory=True,
+            )
+            .with_columns(
+                pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
+            )
+            .select(
+                [
+                    pl.col("series_id"),
+                    pl.col("anglez"),
+                    pl.col("enmo"),
+                    pl.col("timestamp").dt.month().alias("month"),
+                    pl.col("timestamp").dt.hour().alias("hour"),
+                    pl.col("timestamp").dt.minute().alias("minute"),
+                ]
+            )
+            .collect()
         )
 
+    for series_id, this_series_df in tqdm(
+        series_df.group_by("series_id"), desc="generate features"
+    ):
         # 特徴量を追加
         feature_df = make_feature_df(this_series_df)
 
