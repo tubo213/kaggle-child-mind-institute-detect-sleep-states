@@ -19,12 +19,8 @@ SERIES_SCHEMA = {
 FEATURE_NAMES = [
     "anglez",
     "enmo",
-    "month_sin",
-    "month_cos",
     "hour_sin",
     "hour_cos",
-    "minute_sin",
-    "minute_cos",
 ]
 
 
@@ -90,9 +86,7 @@ def main(cfg: DictConfig):
                     pl.col("series_id"),
                     pl.col("anglez"),
                     pl.col("enmo"),
-                    pl.col("timestamp").dt.month().alias("month"),
                     pl.col("timestamp").dt.hour().alias("hour"),
-                    pl.col("timestamp").dt.minute().alias("minute"),
                 ]
             )
             .collect()
@@ -101,23 +95,24 @@ def main(cfg: DictConfig):
     for series_id, this_series_df in tqdm(
         series_df.group_by("series_id"), desc="generate features"
     ):
-        # 特徴量を追加
-        feature_df = make_feature_df(this_series_df)
+        with trace(f"series_id: {series_id}"):
+            # 特徴量を追加
+            feature_df = make_feature_df(this_series_df)
 
-        # series_id毎に特徴量をそれぞれnpyで保存
-        feature_output_dir = (
-            Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features" / series_id
-        )
-        if cfg.train_or_test_or_dev == "train":
-            save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
-        else:
-            save_chunk_each_series(
-                series_id,
-                feature_df,
-                FEATURE_NAMES,
-                cfg.duration,
-                Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
+            # series_id毎に特徴量をそれぞれnpyで保存
+            feature_output_dir = (
+                Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features" / series_id
             )
+            if cfg.train_or_test_or_dev == "train":
+                save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
+            else:
+                save_chunk_each_series(
+                    series_id,
+                    feature_df,
+                    FEATURE_NAMES,
+                    cfg.duration,
+                    Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
+                )
 
 
 if __name__ == "__main__":
