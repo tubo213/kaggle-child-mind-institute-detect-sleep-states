@@ -43,6 +43,7 @@ post_process:
 
 # label
 labels:
+  - 'awake'
   - "event_onset"
   - "event_wakeup"
 

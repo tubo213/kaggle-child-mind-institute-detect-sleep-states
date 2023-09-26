@@ -31,7 +31,7 @@ FEATURE_NAMES = [
     "minute_cos",
 ]
 
-EVENT_NAMES = ["event_null", "event_onset", "event_wakeup"]
+EVENT_NAMES = ["event_null", "event_onset", "event_wakeup", "awake"]
 
 
 def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
@@ -48,16 +48,19 @@ def make_feature_df(series_df: pl.DataFrame):
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
         *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
         (pl.col("anglez") - (-90)) / (90 - (-90)),
-        (pl.col("enmo") - pl.col('enmo').min()) / (pl.col('enmo').max() - pl.col('enmo').min()),
+        (pl.col("enmo") - pl.col("enmo").min()) / (pl.col("enmo").max() - pl.col("enmo").min()),
     )
     return series_df
 
 
 def make_label_df(series_df: pl.DataFrame, event_df: pl.DataFrame):
     label_df = series_df.select(["series_id", "step"]).join(
-        event_df.select(["series_id", "step", "event"]),
+        event_df.select(["series_id", "step", "event", "awake"]),
         on=["series_id", "step"],
         how="left",
+    )
+    label_df = label_df.with_columns(
+        pl.col("awake").fill_null(strategy="backward").over("series_id").fill_null(1).cast(pl.Int8)
     )
     label_df = label_df.to_dummies("event")
     return label_df
@@ -98,6 +101,11 @@ def main(cfg: DictConfig):
 
         # Drop null event
         event_df = event_df.drop_nulls()
+
+        # awake追加
+        event_df = event_df.with_columns(
+            pl.col("event").map(lambda s: s == "onset").alias("awake")
+        )
 
         # labelを作成
         label_df = make_label_df(series_df, event_df)

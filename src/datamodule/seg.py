@@ -211,7 +211,7 @@ class TrainDataset(Dataset):
 
         # extract data matching series_id
         this_feature = self.features[series_id]  # (n_steps, num_features)
-        this_label = self.labels[series_id].astype(np.float64)  # (n_steps, 2)
+        this_label = self.labels[series_id].astype(np.float64)  # (n_steps, 3)
         this_mask = self.masks[series_id]  # (n_steps,)
         n_steps = this_feature.shape[0]
 
@@ -223,10 +223,12 @@ class TrainDataset(Dataset):
         # crop
         start, end = random_crop(pos, self.cfg.duration, n_steps)
         feature = this_feature[start:end]  # (duration, num_features)
-        label = this_label[start:end]  # label has 1 at the event position, (duration, 2)
+        label = this_label[start:end]  # label has 1 at the event position, (duration, 3)
 
         # from hard label to gaussian label
-        label = gaussian_label(label, offset=self.cfg.offset, sigma=self.cfg.sigma)
+        label[:, [1, 2]] = gaussian_label(
+            label[:, [1, 2]], offset=self.cfg.offset, sigma=self.cfg.sigma
+        )
 
         return {
             "series_id": series_id,
@@ -284,8 +286,8 @@ class SegDataModule(LightningDataModule):
         self.data_dir = Path(cfg.dir.data_dir)
         self.processed_dir = Path(cfg.dir.processed_dir)
 
-    # def setup(self, stage: str) -> None:
-    #     if stage == "fit" or stage == "validate" or stage is None:
+        # def setup(self, stage: str) -> None:
+        #     if stage == "fit" or stage == "validate" or stage is None:
         self.event_df = pl.read_csv(self.data_dir / "train_events.csv")
         self.train_event_df = self.event_df.filter(
             pl.col("series_id").is_in(self.cfg.split.train_series_ids)
@@ -325,7 +327,7 @@ class SegDataModule(LightningDataModule):
             processed_dir=self.processed_dir,
         )
 
-    # if stage == "test" or stage == "predict" or stage is None:
+        # if stage == "test" or stage == "predict" or stage is None:
         # test data
         self.test_chunk_features = load_chunk_features(
             duration=self.cfg.duration,
