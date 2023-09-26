@@ -34,9 +34,9 @@ def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
 
 def make_feature_df(series_df: pl.DataFrame):
     series_df = series_df.with_columns(
-        *to_coord(pl.col("month"), 12, "month"),
+        # *to_coord(pl.col("month"), 12, "month"),
         *to_coord(pl.col("hour"), 24, "hour"),
-        *to_coord(pl.col("minute"), 60, "minute"),
+        # *to_coord(pl.col("minute"), 60, "minute"),
     )
     return series_df
 
@@ -92,9 +92,9 @@ def main(cfg: DictConfig):
             .collect()
         )
 
-    for series_id, this_series_df in tqdm(
-        series_df.group_by("series_id"), desc="generate features"
-    ):
+    unique_series_ids = series_df["series_id"].unique()
+    for series_id in tqdm(unique_series_ids):
+        this_series_df = series_df.filter(pl.col("series_id") == series_id)
         with trace(f"series_id: {series_id}"):
             # 特徴量を追加
             feature_df = make_feature_df(this_series_df)
@@ -113,6 +113,7 @@ def main(cfg: DictConfig):
                     cfg.duration,
                     Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
                 )
+        series_df = series_df.filter(pl.col("series_id") != series_id)
 
 
 if __name__ == "__main__":
