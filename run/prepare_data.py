@@ -6,33 +6,16 @@ import polars as pl
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-SERIES_SCHEMA = {
-    "series_id": pl.Utf8,
-    "step": pl.UInt32,
-    "anglez": pl.Float32,
-    "enmo": pl.Float32,
-}
-
-EVENT_SCHEMA = {
-    "series_id": pl.Utf8,
-    "night": pl.UInt32,
-    "event": pl.Utf8,
-    "step": pl.UInt32,
-    "timestamp": pl.Utf8,
-}
-
 FEATURE_NAMES = [
     "anglez",
     "enmo",
-    "month_sin",
-    "month_cos",
+    # "month_sin",
+    # "month_cos",
     "hour_sin",
     "hour_cos",
-    "minute_sin",
-    "minute_cos",
+    # "minute_sin",
+    # "minute_cos",
 ]
-
-EVENT_NAMES = ["event_null", "event_onset", "event_wakeup", "awake"]
 
 
 def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
@@ -65,8 +48,6 @@ def main(cfg: DictConfig):
     # Read series_df
     series_df = pl.read_parquet(
         Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet", low_memory=True
-    ).with_columns(
-        *[pl.col(col).cast(d_type) for col, d_type in SERIES_SCHEMA.items()],
     )
 
     for series_id, this_series_df in tqdm(
