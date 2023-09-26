@@ -17,7 +17,7 @@ defaults:
 
 seed: 42
 exp_name: dummy
-duration: 512
+duration: 4991 # duration // hop_length + 1が32の倍数になるように調整
 
 # training
 epoch: 5
@@ -35,11 +35,13 @@ check_val_every_n_epoch: 1
 offset: 10
 sigma: 10
 bg_sampling_rate: 0.3
+n_fft: 126
+hop_length: 3
 
 # post_process
 post_process:
-  score_th: 0.01
-  distance: 5000
+  score_th: 0.2
+  distance: 1666
 
 # label
 labels:
@@ -51,12 +53,12 @@ labels:
 features:
   - "anglez"
   - "enmo"
-  - "month_sin"
-  - "month_cos"
+  # - "month_sin"
+  # - "month_cos"
   - "hour_sin"
   - "hour_cos"
-  - "minute_sin"
-  - "minute_cos"
+  # - "minute_sin"
+  # - "minute_cos"
 
 # optimizer
 optimizer:
