@@ -1,6 +1,7 @@
 name: UNet1D
 params:
   encoder_name: resnet34
+  encoder_weights: "imagenet"
   bilinear: false
   se: false
   res: false
