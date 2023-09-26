@@ -121,6 +121,7 @@ class UNet1D(nn.Module):
         n_classes: int,
         duration: int,
         encoder_name: str,
+        encoder_weights: Optional[str] = "imagenet",
         bilinear: bool = True,
         se: bool = False,
         res: bool = False,
