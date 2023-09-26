@@ -2,6 +2,7 @@ from pathlib import Path
 
 import hydra
 import numpy as np
+import polars as pl
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
@@ -40,7 +41,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
         processed_dir=Path(cfg.dir.processed_dir),
         train_or_test="test",
     )
-    test_dataset = TestDataset(chunk_features)
+    test_dataset = TestDataset(cfg, chunk_features)
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=cfg.batch_size,
@@ -70,7 +71,12 @@ def main(cfg: DictConfig):
             keys.extend(key)
 
     preds = np.concatenate(preds, axis=0)
-    sub_df = post_process_for_seg(keys, preds, score_th=cfg.post_process.score_th)  # type: ignore
+    sub_df = post_process_for_seg(
+        keys, preds[:, :, [1, 2]], score_th=cfg.post_process.score_th  # type: ignore
+    )
+    sub_df = sub_df.with_columns(
+        (pl.col("step") - 1) * cfg.hop_length  # stepがhop_length分ずれているので修正
+    )
     sub_df.write_csv("submission.csv")
 
 

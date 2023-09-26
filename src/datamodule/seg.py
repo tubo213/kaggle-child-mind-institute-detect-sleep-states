@@ -295,9 +295,14 @@ class ValidDataset(Dataset):
 
 
 class TestDataset(Dataset):
-    def __init__(self, chunk_features: dict[str, np.ndarray]):
+    def __init__(self, cfg, chunk_features: dict[str, np.ndarray]):
         self.chunk_features = chunk_features
         self.keys = list(chunk_features.keys())
+        self.wav_transform = Spectrogram(
+            n_fft=cfg.n_fft,
+            hop_length=cfg.hop_length,
+        )
+        self.eps = 1e-6
 
     def __len__(self):
         return len(self.keys)
@@ -305,6 +310,17 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         key = self.keys[idx]
         feature = self.chunk_features[key]
+
+        # TODO: modelのとこでやる. wave to Spectrogram wave to Spectrogram
+        imgs = []
+        for i in range(feature.shape[1]):
+            img = self.wav_transform(torch.FloatTensor(feature[:, i]))
+            img = librosa.power_to_db(img.numpy())
+            # normalize 0-1 with min-max
+            img = (img - img.mean()) / (img.std() + self.eps)
+            imgs.append(img)
+        # concat
+        feature = np.stack(imgs, axis=0)  # (C, n_mels, duration // hop_length + 1)
 
         return {
             "key": key,

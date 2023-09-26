@@ -18,16 +18,22 @@ exp_name: dummy
 weight_path: null
 
 seed: 42
-duration: 1024
+duration: 4991
 batch_size: 32
 num_workers: 2
 
+# Dataset
+n_fft: 126
+hop_length: 3
+
 # post_process
 post_process:
-  score_th: 0.5
+  score_th: 0.05
+  distance: 1666
 
 # label
 labels:
+  - 'awake'
   - "event_onset"
   - "event_wakeup"
 
@@ -35,9 +41,9 @@ labels:
 features:
   - "anglez"
   - "enmo"
-  - "month_sin"
-  - "month_cos"
+  # - "month_sin"
+  # - "month_cos"
   - "hour_sin"
   - "hour_cos"
-  - "minute_sin"
-  - "minute_cos"
+  # - "minute_sin"
+  # - "minute_cos"
