@@ -4,6 +4,7 @@ import hydra
 import numpy as np
 import polars as pl
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 SERIES_SCHEMA = {
     "series_id": pl.Utf8,
@@ -47,39 +48,43 @@ def make_feature_df(series_df: pl.DataFrame):
         *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
         *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
-        # (pl.col("anglez") - (-90)) / (90 - (-90)),
-        # (pl.col("enmo") - pl.col("enmo").min()) / (pl.col("enmo").max() - pl.col("enmo").min()),
     )
     return series_df
 
 
-def save_for_each_series_id(df: pl.DataFrame, columns: list[str], output_dir: Path):
-    for series_id, df in df.group_by("series_id"):
-        this_output_dir = output_dir / series_id  # type: ignore
-        this_output_dir.mkdir(parents=True, exist_ok=True)
+def save_each_series(this_series_df: pl.DataFrame, columns: list[str], output_dir: Path):
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-        for col_name in columns:
-            x = df.get_column(col_name).to_numpy()
-            np.save(this_output_dir / f"{col_name}.npy", x)
+    for col_name in columns:
+        x = this_series_df.get_column(col_name).to_numpy()
+        np.save(output_dir / f"{col_name}.npy", x)
 
 
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
 def main(cfg: DictConfig):
     # Read series_df
-    series_df = pl.read_parquet(Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet")
-
-    # cast series_df to appropriate type
-    series_df = series_df.select(
+    series_df = pl.read_parquet(
+        Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet"
+    ).with_columns(
         *[pl.col(col).cast(d_type) for col, d_type in SERIES_SCHEMA.items()],
-        pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
     )
 
-    # 特徴量を追加
-    feature_df = make_feature_df(series_df)
+    for series_id, this_series_df in tqdm(
+        series_df.group_by("series_id"), desc="generate features"
+    ):
+        # cast series_df to appropriate type
+        this_series_df = this_series_df.with_columns(
+            pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
+        )
 
-    # series_id毎に特徴量をそれぞれnpyで保存
-    feature_output_dir = Path(cfg.dir.processed_dir) / cfg.train_or_test / "features"
-    save_for_each_series_id(feature_df, FEATURE_NAMES, feature_output_dir)
+        # 特徴量を追加
+        feature_df = make_feature_df(this_series_df)
+
+        # series_id毎に特徴量をそれぞれnpyで保存
+        feature_output_dir = (
+            Path(cfg.dir.processed_dir) / cfg.train_or_test / "features" / series_id
+        )
+        save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
 
 
 if __name__ == "__main__":
