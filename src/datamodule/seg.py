@@ -2,12 +2,17 @@ import random
 from pathlib import Path
 from typing import Optional
 
+import librosa
 import numpy as np
 import polars as pl
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset
+from torchaudio.transforms import Spectrogram
+
+IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
+IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
 
 
 ###################
@@ -35,24 +40,6 @@ def load_features(
         features[series_dir.name] = np.stack(this_feature, axis=1)
 
     return features
-
-
-def load_labels(
-    label_names: str, series_ids: Optional[list[str]], processed_dir: Path
-) -> dict[str, np.ndarray]:
-    labels = {}
-
-    if series_ids is None:
-        series_ids = [series_dir.name for series_dir in (processed_dir / "train/labels").glob("*")]
-
-    for series_id in series_ids:
-        series_dir = processed_dir / f"train/labels/{series_id}"
-        this_label = []
-        for label_name in label_names:
-            this_label.append(np.load(series_dir / f"{label_name}.npy"))
-        labels[series_id] = np.stack(this_label, axis=1)
-
-    return labels
 
 
 def load_masks(series_ids: Optional[list[str]], processed_dir: Path) -> dict[str, np.ndarray]:
@@ -107,32 +94,6 @@ def load_chunk_features(
     return features  # type: ignore
 
 
-def load_chunk_labels(
-    duration: int,
-    label_names: list[str],
-    series_ids: list[str],
-    processed_dir: Path,
-) -> dict[str, np.ndarray]:
-    labels = {}
-
-    if series_ids is None:
-        series_ids = [series_dir.name for series_dir in (processed_dir / "train/labels").glob("*")]
-
-    for series_id in series_ids:
-        series_dir = processed_dir / f"train/labels/{series_id}"
-        this_label = []
-        for label_name in label_names:
-            this_label.append(np.load(series_dir / f"{label_name}.npy"))
-        this_label = np.stack(this_label, axis=1)
-        num_chunks = (len(this_label) // duration) + 1
-        for i in range(num_chunks):
-            chunk_label = this_label[i * duration : (i + 1) * duration]
-            chunk_label = pad_if_needed(chunk_label, duration, pad_value=0)  # type: ignore
-            labels[f"{series_id}_{i:07}"] = chunk_label
-
-    return labels  # type: ignore
-
-
 def load_chunk_masks(
     duration: int, series_ids: Optional[list[str]], processed_dir: Path
 ) -> dict[str, np.ndarray]:
@@ -168,6 +129,31 @@ def random_crop(pos: int, duration: int, max_end) -> tuple[int, int]:
 ###################
 # Label
 ###################
+def get_label(
+    this_event_df: pl.DataFrame, n_steps: int, hop_length: int, start: int, end: int
+) -> np.ndarray:
+    # (start, end)の範囲と(onset, wakeup)の範囲が重なるものを取得
+    this_event_df = this_event_df.filter((pl.col("wakeup") >= start) & (pl.col("onset") <= end))
+    # 位置を修正
+    this_event_df = this_event_df.with_columns(
+        ((pl.col("onset") - start) // hop_length + 1),
+        ((pl.col("wakeup") - start) // hop_length + 1),
+    )
+
+    label = np.zeros((n_steps, 3))
+    for onset, wakeup in this_event_df.select(["onset", "wakeup"]).to_numpy():
+        if onset >= 0 and onset < n_steps:
+            label[onset, 1] = 1
+        if wakeup < n_steps and wakeup >= 0:
+            label[wakeup, 2] = 1
+
+        onset = max(0, onset)
+        wakeup = min(n_steps, wakeup)
+        label[onset:wakeup, 0] = 1  # sleep
+
+    return label
+
+
 # ref: https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360236#2004730
 def gaussian_kernel(length: int, sigma: int = 3) -> np.ndarray:
     x = np.ogrid[-length : length + 1]
@@ -193,25 +179,31 @@ class TrainDataset(Dataset):
         cfg: DictConfig,
         event_df: pl.DataFrame,
         features: dict[str, np.ndarray],
-        labels: dict[str, np.ndarray],
         masks: dict[str, np.ndarray],
     ):
         self.cfg = cfg
-        self.event_df = event_df
+        self.event_df = event_df.pivot(
+            index=["series_id", "night"], columns="event", values="step"
+        ).drop_nulls()
         self.features = features
-        self.labels = labels
         self.masks = masks
+        self.wav_transform = Spectrogram(
+            n_fft=cfg.n_fft,
+            hop_length=cfg.hop_length,
+        )
+        self.eps = 1e-6
 
     def __len__(self):
         return len(self.event_df)
 
     def __getitem__(self, idx):
-        pos = self.event_df[idx, "step"]
+        event = np.random.choice(["onset", "wakeup"], p=[0.5, 0.5])
+        pos = self.event_df[idx, event]
         series_id = self.event_df[idx, "series_id"]
+        this_event_df = self.event_df.filter(pl.col("series_id") == series_id)
 
         # extract data matching series_id
         this_feature = self.features[series_id]  # (n_steps, num_features)
-        this_label = self.labels[series_id].astype(np.float64)  # (n_steps, 3)
         this_mask = self.masks[series_id]  # (n_steps,)
         n_steps = this_feature.shape[0]
 
@@ -223,9 +215,21 @@ class TrainDataset(Dataset):
         # crop
         start, end = random_crop(pos, self.cfg.duration, n_steps)
         feature = this_feature[start:end]  # (duration, num_features)
-        label = this_label[start:end]  # label has 1 at the event position, (duration, 3)
+
+        # TODO: modelのとこでやる. wave to Spectrogram
+        imgs = []
+        for i in range(feature.shape[1]):
+            img = self.wav_transform(torch.FloatTensor(feature[:, i]))
+            img = librosa.power_to_db(img.numpy())
+            # normalize 0-1 with min-max
+            img = (img - img.mean()) / (img.std() + self.eps)
+            imgs.append(img)
+
+        # concat
+        feature = np.stack(imgs, axis=0)  # (C, n_mels, duration // hop_length + 1)
 
         # from hard label to gaussian label
+        label = get_label(this_event_df, feature.shape[-1], self.cfg.hop_length, start, end)
         label[:, [1, 2]] = gaussian_label(
             label[:, [1, 2]], offset=self.cfg.offset, sigma=self.cfg.sigma
         )
@@ -238,10 +242,20 @@ class TrainDataset(Dataset):
 
 
 class ValidDataset(Dataset):
-    def __init__(self, chunk_features: dict[str, np.ndarray], chunk_labels: dict[str, np.ndarray]):
+    def __init__(
+        self, cfg: DictConfig, event_df: pl.DataFrame, chunk_features: dict[str, np.ndarray]
+    ):
+        self.cfg = cfg
+        self.event_df = event_df.pivot(
+            index=["series_id", "night"], columns="event", values="step"
+        ).drop_nulls()
         self.chunk_features = chunk_features
-        self.chunk_labels = chunk_labels
         self.keys = list(chunk_features.keys())
+        self.wav_transform = Spectrogram(
+            n_fft=cfg.n_fft,
+            hop_length=cfg.hop_length,
+        )
+        self.eps = 1e-6
 
     def __len__(self):
         return len(self.keys)
@@ -249,7 +263,29 @@ class ValidDataset(Dataset):
     def __getitem__(self, idx):
         key = self.keys[idx]
         feature = self.chunk_features[key]
-        label = self.chunk_labels[key]
+
+        # TODO: modelのとこでやる. wave to Spectrogram wave to Spectrogram
+        imgs = []
+        for i in range(feature.shape[1]):
+            img = self.wav_transform(torch.FloatTensor(feature[:, i]))
+            img = librosa.power_to_db(img.numpy())
+            # normalize 0-1 with min-max
+            img = (img - img.mean()) / (img.std() + self.eps)
+            imgs.append(img)
+        # concat
+        feature = np.stack(imgs, axis=0)  # (C, n_mels, duration // hop_length + 1)
+
+        series_id, chunk_id = key.split("_")
+        chunk_id = int(chunk_id)
+        start = chunk_id * self.cfg.duration
+        end = start + self.cfg.duration
+        label = get_label(
+            self.event_df.filter(pl.col("series_id") == series_id),
+            feature.shape[-1],
+            self.cfg.hop_length,
+            start,
+            end,
+        )
 
         return {
             "key": key,
@@ -285,27 +321,19 @@ class SegDataModule(LightningDataModule):
         self.cfg = cfg
         self.data_dir = Path(cfg.dir.data_dir)
         self.processed_dir = Path(cfg.dir.processed_dir)
-
-        # def setup(self, stage: str) -> None:
-        #     if stage == "fit" or stage == "validate" or stage is None:
-        self.event_df = pl.read_csv(self.data_dir / "train_events.csv")
+        self.event_df = pl.read_csv(self.data_dir / "train_events.csv").drop_nulls()
         self.train_event_df = self.event_df.filter(
             pl.col("series_id").is_in(self.cfg.split.train_series_ids)
-        ).drop_nulls()
+        )
         self.valid_event_df = self.event_df.filter(
             pl.col("series_id").is_in(self.cfg.split.valid_series_ids)
-        ).drop_nulls()
+        )
         # train data
         self.train_features = load_features(
             feature_names=self.cfg.features,
             series_ids=self.cfg.split.train_series_ids,
             processed_dir=self.processed_dir,
             train_or_test="train",
-        )
-        self.train_labels = load_labels(
-            label_names=self.cfg.labels,
-            series_ids=self.cfg.split.train_series_ids,
-            processed_dir=self.processed_dir,
         )
         self.train_masks = load_masks(
             series_ids=self.cfg.split.train_series_ids,
@@ -320,29 +348,12 @@ class SegDataModule(LightningDataModule):
             processed_dir=self.processed_dir,
             train_or_test="train",
         )
-        self.valid_chunk_labels = load_chunk_labels(
-            duration=self.cfg.duration,
-            label_names=self.cfg.labels,
-            series_ids=self.cfg.split.valid_series_ids,
-            processed_dir=self.processed_dir,
-        )
-
-        # if stage == "test" or stage == "predict" or stage is None:
-        # test data
-        self.test_chunk_features = load_chunk_features(
-            duration=self.cfg.duration,
-            feature_names=self.cfg.features,
-            series_ids=None,
-            processed_dir=self.processed_dir,
-            train_or_test="test",
-        )
 
     def train_dataloader(self):
         train_dataset = TrainDataset(
             cfg=self.cfg,
             event_df=self.train_event_df,
             features=self.train_features,
-            labels=self.train_labels,
             masks=self.train_masks,
         )
         train_loader = torch.utils.data.DataLoader(
@@ -357,8 +368,9 @@ class SegDataModule(LightningDataModule):
 
     def val_dataloader(self):
         valid_dataset = ValidDataset(
+            cfg=self.cfg,
+            event_df=self.valid_event_df,
             chunk_features=self.valid_chunk_features,
-            chunk_labels=self.valid_chunk_labels,
         )
         valid_loader = torch.utils.data.DataLoader(
             valid_dataset,
@@ -368,19 +380,3 @@ class SegDataModule(LightningDataModule):
             pin_memory=True,
         )
         return valid_loader
-
-    def test_dataloader(self):
-        test_dataset = TestDataset(
-            chunk_features=self.test_chunk_features,
-        )
-        test_loader = torch.utils.data.DataLoader(
-            test_dataset,
-            batch_size=self.cfg.batch_size,
-            shuffle=False,
-            num_workers=self.cfg.num_workers,
-            pin_memory=True,
-        )
-        return test_loader
-
-    def predict_dataloader(self):
-        return self.test_dataloader()

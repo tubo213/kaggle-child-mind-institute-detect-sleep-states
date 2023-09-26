@@ -2,6 +2,7 @@
 from functools import partial
 from typing import Optional
 
+import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -115,9 +116,11 @@ def create_layer_norm(channel, length):
 class UNet1D(nn.Module):
     def __init__(
         self,
+        height: int,
         n_channels: int,
         n_classes: int,
         duration: int,
+        encoder_name: str,
         bilinear: bool = True,
         se: bool = False,
         res: bool = False,
@@ -125,6 +128,7 @@ class UNet1D(nn.Module):
         dropout: float = 0.2,
     ):
         super(UNet1D, self).__init__()
+        self.encoder_name = encoder_name
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.duration = duration
@@ -133,9 +137,12 @@ class UNet1D(nn.Module):
         self.res = res
         self.scale_factor = scale_factor
 
+        self.encoder = smp.Unet(encoder_name, in_channels=n_channels, classes=1)
+        self.fc = nn.Linear(height, self.n_classes)
+
         factor = 2 if bilinear else 1
         self.inc = DoubleConv(
-            self.n_channels, 64, norm=partial(create_layer_norm, length=self.duration)
+            self.n_classes, 64, norm=partial(create_layer_norm, length=self.duration)
         )
         self.down1 = Down(
             64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // 2)
@@ -190,14 +197,18 @@ class UNet1D(nn.Module):
         """Forward
 
         Args:
-            x (torch.Tensor): (batch_size, n_timesteps, n_channels)
+            x (torch.Tensor): (batch_size, n_channels, n_mels, n_timesteps)
 
         Returns:
             torch.Tensor: (batch_size, n_timesteps, n_classes)
         """
-        x = x.transpose(
-            1, 2
-        )  # (batch_size, n_timesteps, n_channels) -> (batch_size, n_channels, n_timesteps)
+
+        x = self.encoder(x)  # (batch_size, 1, n_mels, n_timesteps)
+        x = x.squeeze(1)  # (batch_size, n_mels, n_timesteps)
+        x = self.fc(x.transpose(1, 2))  # (batch_size, n_timesteps, n_classes)
+
+        # 1D U-Net
+        x = x.transpose(1, 2)  # (batch_size, n_classes, n_timesteps)
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
