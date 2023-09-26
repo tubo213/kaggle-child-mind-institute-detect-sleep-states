@@ -21,8 +21,6 @@ LOGGER = logging.getLogger(Path(__file__).name)
 def main(cfg: DictConfig):  # type: ignore
     seed_everything(cfg.seed)
 
-    is_test_mode = False
-
     # init lightning model
     datamodule = SegDataModule(cfg)
     LOGGER.info("Set Up DataModule")
