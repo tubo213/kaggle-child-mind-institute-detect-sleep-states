@@ -138,7 +138,7 @@ class UNet1D(nn.Module):
         self.res = res
         self.scale_factor = scale_factor
 
-        self.encoder = smp.Unet(encoder_name, in_channels=n_channels, classes=1)
+        self.encoder = smp.Unet(encoder_name, in_channels=n_channels, classes=1, encoder_weights=encoder_weights)
         self.fc = nn.Linear(height, self.n_classes)
 
         factor = 2 if bilinear else 1
