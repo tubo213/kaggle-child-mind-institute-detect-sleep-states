@@ -9,12 +9,12 @@ from tqdm import tqdm
 FEATURE_NAMES = [
     "anglez",
     "enmo",
-    # "month_sin",
-    # "month_cos",
+    "month_sin",
+    "month_cos",
     "hour_sin",
     "hour_cos",
-    # "minute_sin",
-    # "minute_cos",
+    "minute_sin",
+    "minute_cos",
 ]
 
 
