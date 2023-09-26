@@ -20,7 +20,8 @@ def load_model(cfg: DictConfig) -> nn.Module:
     )
 
     # load weights
-    model.load_state_dict(torch.load(cfg.weight_path))
+    if cfg.weight_path is not None:
+        model.load_state_dict(torch.load(cfg.weight_path))
     model.eval()
     return model
 
@@ -34,14 +35,8 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
     Returns:
         DataLoader: test dataloader
     """
-    chunk_features = load_chunk_features(
-        duration=cfg.duration,
-        feature_names=cfg.features,
-        series_ids=None,
-        processed_dir=Path(cfg.dir.processed_dir),
-        train_or_test_or_dev=cfg.train_or_test_or_dev,
-    )
-    test_dataset = TestDataset(cfg, chunk_features)
+    feature_dir = Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features"
+    test_dataset = TestDataset(cfg, feature_dir)
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=cfg.batch_size,
@@ -55,8 +50,8 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 
 @hydra.main(config_path="conf", config_name="inference", version_base="1.2")
 def main(cfg: DictConfig):
-    model = load_model(cfg)
     test_dataloader = get_test_dataloader(cfg)
+    model = load_model(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 

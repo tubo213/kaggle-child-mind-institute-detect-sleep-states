@@ -11,6 +11,8 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset
 from torchaudio.transforms import Spectrogram
 
+from src.utils.common import pad_if_needed
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
 IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
 
@@ -53,15 +55,6 @@ def load_masks(series_ids: Optional[list[str]], processed_dir: Path) -> dict[str
         masks[series_id] = np.load(series_dir / "event_null.npy")
 
     return masks
-
-
-def pad_if_needed(x: np.ndarray, max_len: int, pad_value: float = 0.0) -> np.ndarray:
-    if len(x) == max_len:
-        return x
-    num_pad = max_len - len(x)
-    n_dim = len(x.shape)
-    pad_widths = [(0, num_pad)] + [(0, 0) for _ in range(n_dim - 1)]
-    return np.pad(x, pad_width=pad_widths, mode="constant", constant_values=pad_value)
 
 
 def load_chunk_features(
@@ -295,9 +288,10 @@ class ValidDataset(Dataset):
 
 
 class TestDataset(Dataset):
-    def __init__(self, cfg, chunk_features: dict[str, np.ndarray]):
-        self.chunk_features = chunk_features
-        self.keys = list(chunk_features.keys())
+    def __init__(self, cfg: DictConfig, feature_dir: Path):
+        self.cfg = cfg
+        self.feature_dir = feature_dir
+        self.keys = [feature_dir.name for feature_dir in feature_dir.glob("*")]
         self.wav_transform = Spectrogram(
             n_fft=cfg.n_fft,
             hop_length=cfg.hop_length,
@@ -309,7 +303,7 @@ class TestDataset(Dataset):
 
     def __getitem__(self, idx):
         key = self.keys[idx]
-        feature = self.chunk_features[key]
+        feature = self._load_chunk_feature(key)
 
         # TODO: modelのとこでやる. wave to Spectrogram wave to Spectrogram
         imgs = []
@@ -326,6 +320,12 @@ class TestDataset(Dataset):
             "key": key,
             "feature": torch.FloatTensor(feature),
         }
+
+    def _load_chunk_feature(self, key: str) -> np.ndarray:
+        feature = []
+        for feature_name in self.cfg.features:
+            feature.append(np.load(self.feature_dir / key / f"{feature_name}.npy"))
+        return np.stack(feature, axis=1)
 
 
 ###################

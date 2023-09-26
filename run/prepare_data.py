@@ -6,6 +6,8 @@ import polars as pl
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+from src.utils.common import pad_if_needed
+
 SERIES_SCHEMA = {
     "series_id": pl.Utf8,
     "step": pl.UInt32,
@@ -51,6 +53,26 @@ def save_each_series(this_series_df: pl.DataFrame, columns: list[str], output_di
         np.save(output_dir / f"{col_name}.npy", x)
 
 
+def save_chunk_each_series(
+    series_id: str,
+    this_series_df: pl.DataFrame,
+    columns: list[str],
+    duration: int,
+    output_dir: Path,
+):
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    num_chunks = (len(this_series_df) // duration) + 1
+    for i in range(num_chunks):
+        chunk_dir = output_dir / f"{series_id}_{i:07}"
+        chunk_dir.mkdir(parents=True, exist_ok=True)
+        chunk_df = this_series_df[i * duration : (i + 1) * duration]
+        for col_name in columns:
+            chunk_feature = chunk_df.get_column(col_name).to_numpy()
+            chunk_feature = pad_if_needed(chunk_feature, duration, pad_value=0)
+            np.save(chunk_dir / f"{col_name}.npy", chunk_feature)
+
+
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
 def main(cfg: DictConfig):
     # Read series_df
@@ -79,7 +101,16 @@ def main(cfg: DictConfig):
         feature_output_dir = (
             Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features" / series_id
         )
-        save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
+        if cfg.train_or_test_or_dev == "train":
+            save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
+        else:
+            save_chunk_each_series(
+                series_id,
+                feature_df,
+                FEATURE_NAMES,
+                cfg.duration,
+                Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
+            )
 
 
 if __name__ == "__main__":

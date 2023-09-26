@@ -14,3 +14,4 @@ defaults:
   - dir: local
 
 train_or_test_or_dev: train
+duration: 4991 # duration // hop_length + 1が32の倍数になるように調整
