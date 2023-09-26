@@ -88,7 +88,7 @@ class SegModel(LightningModule):
 
         val_pred_df = post_process_for_seg(
             keys=keys,
-            preds=preds,
+            preds=preds[:, :, [1, 2]],
             score_th=self.cfg.post_process.score_th,
             distance=self.cfg.post_process.distance,
         )
