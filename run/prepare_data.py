@@ -76,25 +76,15 @@ def save_chunk_each_series(
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
 def main(cfg: DictConfig):
     # Read series_df
-    if "kaggle" in cfg.dir.data_dir:
-        import cudf  # noqa
 
-        print("use cudf!!!!!!!!!!!!")
-        series_df = cudf.read_parquet(
-            Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet"
-        )
-    else:
-        series_df = pl.read_parquet(
-            Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet"
-        )
+    series_df = pl.read_parquet(
+        Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet"
+    )
 
     for series_id, this_series_df in tqdm(
         series_df.groupby("series_id"), desc="generate features"
     ):
         # cast series_df to appropriate type
-        if "kaggle" in cfg.dir.data_dir:
-            this_series_df = this_series_df.to_pandas()
-            this_series_df = pl.from_pandas(this_series_df)
         this_series_df = this_series_df.with_columns(
             pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
         )
