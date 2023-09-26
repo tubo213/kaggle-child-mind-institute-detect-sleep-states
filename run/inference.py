@@ -77,7 +77,7 @@ def main(cfg: DictConfig):
     sub_df = sub_df.with_columns(
         (pl.col("step") - 1) * cfg.hop_length  # stepがhop_length分ずれているので修正
     )
-    sub_df.write_csv("submission.csv")
+    sub_df.write_csv(Path(cfg.dir.sub_dir) / "submission.csv")
 
 
 if __name__ == "__main__":
