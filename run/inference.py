@@ -39,7 +39,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
         feature_names=cfg.features,
         series_ids=None,
         processed_dir=Path(cfg.dir.processed_dir),
-        train_or_test="test",
+        train_or_test=cfg.train_or_test,
     )
     test_dataset = TestDataset(cfg, chunk_features)
     test_dataloader = DataLoader(
