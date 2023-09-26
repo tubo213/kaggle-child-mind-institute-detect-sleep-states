@@ -64,7 +64,7 @@ def save_each_series(this_series_df: pl.DataFrame, columns: list[str], output_di
 def main(cfg: DictConfig):
     # Read series_df
     series_df = pl.read_parquet(
-        Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet"
+        Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet", low_memory=True
     ).with_columns(
         *[pl.col(col).cast(d_type) for col, d_type in SERIES_SCHEMA.items()],
     )
