@@ -113,7 +113,7 @@ def main(cfg: DictConfig):
                     cfg.duration,
                     Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features",
                 )
-        series_df = series_df.filter(pl.col("series_id") != series_id)
+        series_df = series_df.filter(pl.col("series_id") != series_id) # これでメモリを節約できる
 
 
 if __name__ == "__main__":
