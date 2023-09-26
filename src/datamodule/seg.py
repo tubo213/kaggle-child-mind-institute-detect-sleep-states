@@ -22,18 +22,18 @@ def load_features(
     feature_names: list[str],
     series_ids: Optional[list[str]],
     processed_dir: Path,
-    train_or_test: str,
+    train_or_test_or_dev: str,
 ) -> dict[str, np.ndarray]:
     features = {}
 
     if series_ids is None:
         series_ids = [
             series_dir.name
-            for series_dir in (processed_dir / f"{train_or_test}/features").glob("*")
+            for series_dir in (processed_dir / f"{train_or_test_or_dev}/features").glob("*")
         ]
 
     for series_id in series_ids:
-        series_dir = processed_dir / f"{train_or_test}/features/{series_id}"
+        series_dir = processed_dir / f"{train_or_test_or_dev}/features/{series_id}"
         this_feature = []
         for feature_name in feature_names:
             this_feature.append(np.load(series_dir / f"{feature_name}.npy"))
@@ -69,18 +69,18 @@ def load_chunk_features(
     feature_names: list[str],
     series_ids: Optional[list[str]],
     processed_dir: Path,
-    train_or_test: str,
+    train_or_test_or_dev: str,
 ) -> dict[str, np.ndarray]:
     features = {}
 
     if series_ids is None:
         series_ids = [
             series_dir.name
-            for series_dir in (processed_dir / f"{train_or_test}/features").glob("*")
+            for series_dir in (processed_dir / f"{train_or_test_or_dev}/features").glob("*")
         ]
 
     for series_id in series_ids:
-        series_dir = processed_dir / f"{train_or_test}/features/{series_id}"
+        series_dir = processed_dir / f"{train_or_test_or_dev}/features/{series_id}"
         this_feature = []
         for feature_name in feature_names:
             this_feature.append(np.load(series_dir / f"{feature_name}.npy"))
@@ -349,7 +349,7 @@ class SegDataModule(LightningDataModule):
             feature_names=self.cfg.features,
             series_ids=self.cfg.split.train_series_ids,
             processed_dir=self.processed_dir,
-            train_or_test="train",
+            train_or_test_or_dev="train",
         )
         self.train_masks = load_masks(
             series_ids=self.cfg.split.train_series_ids,
@@ -362,7 +362,7 @@ class SegDataModule(LightningDataModule):
             feature_names=self.cfg.features,
             series_ids=self.cfg.split.valid_series_ids,
             processed_dir=self.processed_dir,
-            train_or_test="train",
+            train_or_test_or_dev="train",
         )
 
     def train_dataloader(self):

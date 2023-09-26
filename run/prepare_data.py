@@ -56,7 +56,7 @@ def main(cfg: DictConfig):
     # Read series_df
     series_df = (
         pl.scan_parquet(
-            Path(cfg.dir.data_dir) / f"{cfg.train_or_test}_series.parquet", low_memory=True
+            Path(cfg.dir.data_dir) / f"{cfg.train_or_test_or_dev}_series.parquet", low_memory=True
         )
         .with_columns(
             *[pl.col(col_name).cast(SERIES_SCHEMA[col_name]) for col_name in SERIES_SCHEMA]
@@ -77,7 +77,7 @@ def main(cfg: DictConfig):
 
         # series_id毎に特徴量をそれぞれnpyで保存
         feature_output_dir = (
-            Path(cfg.dir.processed_dir) / cfg.train_or_test / "features" / series_id
+            Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features" / series_id
         )
         save_each_series(feature_df, FEATURE_NAMES, feature_output_dir)
 
