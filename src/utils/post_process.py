@@ -45,7 +45,7 @@ def post_process_for_seg(
                 "series_id": series_id,
                 "step": 0,
                 "event": "onset",
-                "score": 0.5,
+                "score": 0,
             }
         )
 
