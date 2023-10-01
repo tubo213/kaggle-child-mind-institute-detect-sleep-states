@@ -23,6 +23,7 @@ duration: 4991 # duration // hop_length + 1が32の倍数になるように調�
 epoch: 5
 batch_size: 64
 num_workers: 24
+accelerator: auto
 use_amp: true
 debug: false
 gradient_clip_val: 1.0

@@ -15,7 +15,7 @@ defaults:
   - model: unet1d
 
 exp_name: dummy
-train_or_test_or_dev: test
+phase: test
 weight_path: null
 
 seed: 42
