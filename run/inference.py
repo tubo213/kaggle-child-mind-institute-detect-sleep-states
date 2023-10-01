@@ -9,7 +9,8 @@ from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.datamodule.seg import TestDataset, load_chunk_features
+from src.datamodule.seg import TestDataset
+from src.feature_extractor.spectrogram import SpecFeatureExtractor
 from src.models.seg.model import get_model
 from src.utils.post_process import post_process_for_seg
 
@@ -35,7 +36,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
     Returns:
         DataLoader: test dataloader
     """
-    feature_dir = Path(cfg.dir.processed_dir) / cfg.train_or_test_or_dev / "features"
+    feature_dir = Path(cfg.dir.processed_dir) / cfg.phase / "chunk"
     test_dataset = TestDataset(cfg, feature_dir)
     test_dataloader = DataLoader(
         test_dataset,
@@ -51,15 +52,18 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 @hydra.main(config_path="conf", config_name="inference", version_base="1.2")
 def main(cfg: DictConfig):
     test_dataloader = get_test_dataloader(cfg)
+    feature_extractor = SpecFeatureExtractor(n_fft=cfg.n_fft, hop_length=cfg.hop_length)
     model = load_model(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
+    feature_extractor = feature_extractor.to(device)
 
     preds = []
     keys = []
     for batch in tqdm(test_dataloader, desc="inference"):
         with torch.no_grad():
             x = batch["feature"].to(device)
+            x = feature_extractor(x)
             key = batch["key"]
             pred = model(x)["logits"].sigmoid().cpu().numpy()
             preds.append(pred)

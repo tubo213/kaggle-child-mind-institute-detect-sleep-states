@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
 from transformers import get_cosine_schedule_with_warmup
 
+from src.feature_extractor.spectrogram import SpecFeatureExtractor
 from src.models.seg.model import get_model
 from src.utils.metrics import event_detection_ap
 from src.utils.post_process import post_process_for_seg
@@ -25,6 +26,7 @@ class SegModel(LightningModule):
         super().__init__()
         self.cfg = cfg
         self.val_event_df = val_event_df
+        self.feature_extractor = SpecFeatureExtractor(n_fft=cfg.n_fft, hop_length=cfg.hop_length)
         self.model = get_model(cfg, feature_dim, num_classes, duration)
         self.validation_step_outputs: list = []
 
@@ -40,7 +42,8 @@ class SegModel(LightningModule):
         return self.__share_step(batch, "val")
 
     def __share_step(self, batch, mode: str) -> torch.Tensor:
-        output = self.model(batch["feature"], batch["label"])
+        feature = self.feature_extractor(batch["feature"])
+        output = self.model(feature, batch["label"])
         loss = output["loss"]
         logits = output["logits"]
 
@@ -55,7 +58,11 @@ class SegModel(LightningModule):
             )
         elif mode == "val":
             self.validation_step_outputs.append(
-                (batch["key"], batch["label"].detach().cpu(), logits.detach().cpu())
+                (
+                    batch["key"],
+                    batch["label"].detach().cpu().numpy(),
+                    logits.sigmoid().detach().cpu().numpy(),
+                )
             )
             self.log(
                 f"{mode}_loss",
@@ -72,14 +79,8 @@ class SegModel(LightningModule):
         keys = []
         for x in self.validation_step_outputs:
             keys.extend(x[0])
-        labels = torch.concat([x[1] for x in self.validation_step_outputs]).detach().cpu().numpy()
-        preds = (
-            torch.concat([x[2] for x in self.validation_step_outputs])
-            .sigmoid()
-            .detach()
-            .cpu()
-            .numpy()
-        )
+        labels = np.concatenate([x[1] for x in self.validation_step_outputs])
+        preds = np.concatenate([x[2] for x in self.validation_step_outputs])
 
         np.save("keys.npy", np.array(keys))
         np.save("labels.npy", labels)
@@ -92,7 +93,7 @@ class SegModel(LightningModule):
             distance=self.cfg.post_process.distance,
         )
         val_pred_df = val_pred_df.with_columns(
-            (pl.col('step') - 1) * self.cfg.hop_length # stepがhop_length分ずれているので修正
+            (pl.col("step") - 1) * self.cfg.hop_length  # stepがhop_length分ずれているので修正
         )
         val_pred_df.write_csv("val_pred_df.csv")
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
