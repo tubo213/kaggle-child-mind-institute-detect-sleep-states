@@ -34,7 +34,7 @@ def main(cfg: DictConfig):  # type: ignore
         monitor=cfg.monitor,
         mode=cfg.monitor_mode,
         save_top_k=1,
-        save_last=True,
+        save_last=False,
     )
     lr_monitor = LearningRateMonitor("epoch")
 
@@ -48,7 +48,7 @@ def main(cfg: DictConfig):  # type: ignore
         # env
         default_root_dir=Path.cwd(),
         # num_nodes=cfg.training.num_gpus,
-        accelerator="auto",
+        accelerator=cfg.accelerator,
         precision=16 if cfg.use_amp else 32,
         # training
         fast_dev_run=cfg.debug,  # run only 1 train batch and 1 val batch
