@@ -20,12 +20,8 @@ SERIES_SCHEMA = {
 FEATURE_NAMES = [
     "anglez",
     "enmo",
-    "month_sin",
-    "month_cos",
     "hour_sin",
     "hour_cos",
-    "minute_sin",
-    "minute_cos",
 ]
 
 
@@ -39,9 +35,7 @@ def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
 
 def add_feature(series_df: pl.DataFrame) -> pl.DataFrame:
     series_df = series_df.with_columns(
-        *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
-        *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
     ).select("series_id", *FEATURE_NAMES)
     return series_df
 
