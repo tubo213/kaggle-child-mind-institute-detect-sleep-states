@@ -42,8 +42,8 @@ bg_sampling_rate: 0.5
 
 # post_process
 post_process:
-  score_th: 0.05
-  distance: 1666
+  score_th: 0.02
+  distance: 100
 
 # label
 labels:
