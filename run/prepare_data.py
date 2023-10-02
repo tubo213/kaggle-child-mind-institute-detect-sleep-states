@@ -42,7 +42,7 @@ def add_feature(series_df: pl.DataFrame) -> pl.DataFrame:
         *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
         *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
-    )
+    ).select("series_id", *FEATURE_NAMES)
     return series_df
 
 
@@ -100,11 +100,9 @@ def main(cfg: DictConfig):
             .select([pl.col("series_id"), pl.col("anglez"), pl.col("enmo"), pl.col("timestamp")])
             .collect(streaming=True)
         )
-    num_series = series_df.select("series_id").n_unique()
-    unique_series_ids = series_df.select("series_id").unique().to_numpy()[0]
-
+    unique_series_ids = series_df.select("series_id").unique().to_numpy().reshape(-1)
     with trace("Save features"):
-        for series_id in tqdm(unique_series_ids, total=num_series):
+        for series_id in tqdm(unique_series_ids):
             this_series_df = series_df.filter(pl.col("series_id") == series_id)
             this_series_df = add_feature(this_series_df)
             if cfg.chunk:
