@@ -12,12 +12,15 @@ hydra:
 defaults:
   - _self_
   - dir: local
-  - model: unet1d
+  - model: SpecCNN
+  - feature_extractor: cnnspectrogram
+  - decoder: unet1d
   - split: fold_0
 
 seed: 42
 exp_name: dummy
-duration: 4991 # duration // hop_length + 1が32の倍数になるように調整
+duration: 4992 # durationは32の倍数
+downsample_rate: 4 # durationをdownsample_rateで割った値がnum_framesになる
 
 # training
 epoch: 5
@@ -35,9 +38,7 @@ check_val_every_n_epoch: 1
 # Dataset
 offset: 10
 sigma: 10
-bg_sampling_rate: 0.3
-n_fft: 126
-hop_length: 3
+bg_sampling_rate: 0.5
 
 # post_process
 post_process:

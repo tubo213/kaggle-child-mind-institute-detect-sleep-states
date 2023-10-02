@@ -1,0 +1,6 @@
+name: UNet1D
+bilinear: false
+se: false
+res: false
+scale_factor: 2
+dropout: 0.2

@@ -1,0 +1,9 @@
+name: CNNSpectrogram
+base_filters: 128
+kernel_sizes:
+  - 32
+  - 16
+  - 4
+stride: 4
+sigmoid: true
+reinit: true

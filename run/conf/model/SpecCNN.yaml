@@ -1,0 +1,3 @@
+name: SpecCNN
+encoder_name: resnet34
+encoder_weights: imagenet
