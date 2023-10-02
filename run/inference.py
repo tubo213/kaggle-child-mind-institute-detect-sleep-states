@@ -10,14 +10,16 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.datamodule.seg import TestDataset
-from src.feature_extractor.spectrogram import SpecFeatureExtractor
-from src.models.seg.model import get_model
+from src.models.common import get_model
 from src.utils.post_process import post_process_for_seg
 
 
 def load_model(cfg: DictConfig) -> nn.Module:
     model = get_model(
-        cfg, feature_dim=len(cfg.features), num_classes=len(cfg.labels), duration=cfg.duration
+        cfg,
+        feature_dim=len(cfg.features),
+        n_classes=len(cfg.labels),
+        num_timesteps=cfg.duration // cfg.downsample_rate,
     )
 
     # load weights
@@ -57,11 +59,9 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 @hydra.main(config_path="conf", config_name="inference", version_base="1.2")
 def main(cfg: DictConfig):
     test_dataloader = get_test_dataloader(cfg)
-    feature_extractor = SpecFeatureExtractor(n_fft=cfg.n_fft, hop_length=cfg.hop_length)
     model = load_model(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device).eval()
-    feature_extractor = feature_extractor.to(device).eval()
 
     preds = []
     keys = []
@@ -69,7 +69,6 @@ def main(cfg: DictConfig):
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=cfg.use_amp):
                 x = batch["feature"].to(device)
-                x = feature_extractor(x)
                 pred = model(x)["logits"].sigmoid()
             key = batch["key"]
             preds.append(pred.detach().cpu().numpy())
@@ -80,8 +79,8 @@ def main(cfg: DictConfig):
         keys, preds[:, :, [1, 2]], score_th=cfg.post_process.score_th  # type: ignore
     )
     sub_df = sub_df.with_columns(
-        (pl.col("step") - 1) * cfg.hop_length  # stepがhop_length分ずれているので修正
-    )
+        pl.col("step") * cfg.downsample_rate
+    )  # stepがdownsample_rate分ずれているので修正
     sub_df.write_csv(Path(cfg.dir.sub_dir) / "submission.csv")
 
 
