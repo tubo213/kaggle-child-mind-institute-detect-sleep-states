@@ -8,8 +8,7 @@ from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
 from transformers import get_cosine_schedule_with_warmup
 
-from src.feature_extractor.spectrogram import SpecFeatureExtractor
-from src.models.seg.model import get_model
+from src.models.common import get_model
 from src.utils.metrics import event_detection_ap
 from src.utils.post_process import post_process_for_seg
 
@@ -26,8 +25,12 @@ class SegModel(LightningModule):
         super().__init__()
         self.cfg = cfg
         self.val_event_df = val_event_df
-        self.feature_extractor = SpecFeatureExtractor(n_fft=cfg.n_fft, hop_length=cfg.hop_length)
-        self.model = get_model(cfg, feature_dim, num_classes, duration)
+        self.model = get_model(
+            cfg,
+            feature_dim=feature_dim,
+            n_classes=num_classes,
+            num_timesteps=duration // cfg.downsample_rate,
+        )
         self.validation_step_outputs: list = []
         self.best_score = 0
 
@@ -43,8 +46,7 @@ class SegModel(LightningModule):
         return self.__share_step(batch, "val")
 
     def __share_step(self, batch, mode: str) -> torch.Tensor:
-        feature = self.feature_extractor(batch["feature"])
-        output = self.model(feature, batch["label"])
+        output = self.model(batch["feature"], batch["label"])
         loss = output["loss"]
         logits = output["logits"]
 
@@ -90,7 +92,7 @@ class SegModel(LightningModule):
             distance=self.cfg.post_process.distance,
         )
         val_pred_df = val_pred_df.with_columns(
-            (pl.col("step") - 1) * self.cfg.hop_length  # stepがhop_length分ずれているので修正
+            pl.col('step') * self.cfg.downsample_rate,
         )
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)

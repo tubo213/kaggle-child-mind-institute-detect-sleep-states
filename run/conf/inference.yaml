@@ -12,7 +12,9 @@ hydra:
 defaults:
   - _self_
   - dir: local
-  - model: unet1d
+  - model: SpecCNN
+  - feature_extractor: cnnspectrogram
+  - decoder: unet1d
 
 exp_name: dummy
 phase: test
@@ -21,19 +23,18 @@ weight:
   run_name: single
 
 seed: 42
-duration: 4991
+duration: 4992 # durationは32の倍数
+downsample_rate: 4 # durationをdownsample_rateで割った値がnum_framesになる
 batch_size: 32
 num_workers: 2
 use_amp: true
 
 # Dataset
-n_fft: 126
-hop_length: 3
 
 # post_process
 post_process:
-  score_th: 0.05
-  distance: 1666
+  score_th: 0.02
+  distance: 10
 
 # label
 labels:

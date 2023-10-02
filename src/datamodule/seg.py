@@ -9,7 +9,6 @@ import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset
-from torchaudio.transforms import Spectrogram
 
 from src.utils.common import pad_if_needed
 
@@ -81,23 +80,23 @@ def random_crop(pos: int, duration: int, max_end) -> tuple[int, int]:
 # Label
 ###################
 def get_label(
-    this_event_df: pd.DataFrame, n_steps: int, hop_length: int, start: int, end: int
+    this_event_df: pd.DataFrame, num_frames: int, downsample_rate: int, start: int, end: int
 ) -> np.ndarray:
     # # (start, end)の範囲と(onset, wakeup)の範囲が重なるものを取得
     this_event_df = this_event_df.query("@start <= wakeup & onset <= @end")
 
-    label = np.zeros((n_steps, 3))
+    label = np.zeros((num_frames, 3))
     # onset, wakeup, sleepのラベルを作成
     for onset, wakeup in this_event_df[["onset", "wakeup"]].to_numpy():
-        onset = (onset - start) // hop_length + 1
-        wakeup = (wakeup - start) // hop_length + 1
-        if onset >= 0 and onset < n_steps:
+        onset = (onset - start) // downsample_rate
+        wakeup = (wakeup - start) // downsample_rate
+        if onset >= 0 and onset < num_frames:
             label[onset, 1] = 1
-        if wakeup < n_steps and wakeup >= 0:
+        if wakeup < num_frames and wakeup >= 0:
             label[wakeup, 2] = 1
 
         onset = max(0, onset)
-        wakeup = min(n_steps, wakeup)
+        wakeup = min(num_frames, wakeup)
         label[onset:wakeup, 0] = 1  # sleep
 
     return label
@@ -152,10 +151,6 @@ class TrainDataset(Dataset):
             .to_pandas()
         )
         self.features = features
-        self.wav_transform = Spectrogram(
-            n_fft=cfg.n_fft,
-            hop_length=cfg.hop_length,
-        )
         self.eps = 1e-6
 
     def __len__(self):
@@ -180,8 +175,8 @@ class TrainDataset(Dataset):
         feature = this_feature[start:end]  # (duration, num_features)
 
         # from hard label to gaussian label
-        spec_steps = (feature.shape[0] // self.cfg.hop_length) + 1
-        label = get_label(this_event_df, spec_steps, self.cfg.hop_length, start, end)
+        num_frames = self.cfg.duration // self.cfg.downsample_rate
+        label = get_label(this_event_df, num_frames, self.cfg.downsample_rate, start, end)
         label[:, [1, 2]] = gaussian_label(
             label[:, [1, 2]], offset=self.cfg.offset, sigma=self.cfg.sigma
         )
@@ -217,11 +212,10 @@ class ValidDataset(Dataset):
         chunk_id = int(chunk_id)
         start = chunk_id * self.cfg.duration
         end = start + self.cfg.duration
-        spec_steps = (feature.shape[0] // self.cfg.hop_length) + 1
         label = get_label(
             self.event_df.query("series_id == @series_id").reset_index(drop=True),
-            spec_steps,
-            self.cfg.hop_length,
+            self.cfg.duration // self.cfg.downsample_rate,
+            self.cfg.downsample_rate,
             start,
             end,
         )

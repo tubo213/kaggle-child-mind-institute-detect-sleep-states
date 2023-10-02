@@ -1,9 +1,0 @@
-name: UNet1D
-params:
-  encoder_name: resnet34
-  encoder_weights: "imagenet"
-  bilinear: false
-  se: false
-  res: false
-  scale_factor: 2
-  dropout: 0.2
