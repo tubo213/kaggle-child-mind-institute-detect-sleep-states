@@ -67,11 +67,12 @@ def main(cfg: DictConfig):
     keys = []
     for batch in tqdm(test_dataloader, desc="inference"):
         with torch.no_grad():
-            x = batch["feature"].to(device)
-            x = feature_extractor(x)
+            with torch.cuda.amp.autocast(enabled=cfg.use_amp):
+                x = batch["feature"].to(device)
+                x = feature_extractor(x)
+                pred = model(x)["logits"].sigmoid()
             key = batch["key"]
-            pred = model(x)["logits"].sigmoid().detach().cpu().numpy()
-            preds.append(pred)
+            preds.append(pred.detach().cpu().numpy())
             keys.extend(key)
 
     preds = np.concatenate(preds, axis=0)

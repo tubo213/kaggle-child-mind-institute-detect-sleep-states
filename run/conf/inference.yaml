@@ -24,6 +24,7 @@ seed: 42
 duration: 4991
 batch_size: 32
 num_workers: 2
+use_amp: true
 
 # Dataset
 n_fft: 126
@@ -36,7 +37,7 @@ post_process:
 
 # label
 labels:
-  - 'awake'
+  - "awake"
   - "event_onset"
   - "event_wakeup"
 
