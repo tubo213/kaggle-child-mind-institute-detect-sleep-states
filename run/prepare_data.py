@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import hydra
@@ -75,6 +76,18 @@ def save_chunk_each_series(
 
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
 def main(cfg: DictConfig):
+    processed_dir: Path = Path(cfg.dir.processed_dir) / cfg.phase
+    chunk_dir: Path = processed_dir / "chunk"
+    all_dir: Path = processed_dir / "all"
+
+    # ディレクトリが存在する場合は削除
+    if chunk_dir.exists() and cfg.chunk:
+        shutil.rmtree(chunk_dir)
+        print(f"Removed Chunk dir: {chunk_dir}")
+    if all_dir.exists() and not cfg.chunk:
+        shutil.rmtree(all_dir)
+        print(f"Removed All dir: {all_dir}")
+
     with trace("Load series"):
         series_df = (
             pl.scan_parquet(
@@ -84,14 +97,7 @@ def main(cfg: DictConfig):
             .with_columns(
                 pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
             )
-            .select(
-                [
-                    pl.col("series_id"),
-                    pl.col("anglez"),
-                    pl.col("enmo"),
-                    pl.col("timestamp")
-                ]
-            )
+            .select([pl.col("series_id"), pl.col("anglez"), pl.col("enmo"), pl.col("timestamp")])
             .collect(streaming=True)
         )
     num_series = series_df.select("series_id").n_unique()
@@ -103,18 +109,17 @@ def main(cfg: DictConfig):
             this_series_df = add_feature(this_series_df)
             if cfg.chunk:
                 # 特徴量をduration毎にchunkしてnpyで保存
-                feature_output_dir = Path(cfg.dir.processed_dir) / cfg.phase / "chunk"
                 save_chunk_each_series(
                     series_id,
                     this_series_df,
                     FEATURE_NAMES,
                     cfg.duration,
-                    feature_output_dir,
+                    chunk_dir,
                 )
             else:
                 # 特徴量をそれぞれnpyで保存
-                feature_output_dir = Path(cfg.dir.processed_dir) / cfg.phase / "all" / series_id
-                save_each_series(this_series_df, FEATURE_NAMES, feature_output_dir)
+                save_each_series(this_series_df, FEATURE_NAMES, all_dir / series_id)
+
 
 if __name__ == "__main__":
     main()
