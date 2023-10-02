@@ -1,4 +1,5 @@
 data_dir: /home/yuuki/Desktop/competitions/kaggle/kaggle-child-mind-institute-detect-sleep-states/data
 processed_dir: /home/yuuki/Desktop/competitions/kaggle/kaggle-child-mind-institute-detect-sleep-states/processed_data
 output_dir: /home/yuuki/Desktop/competitions/kaggle/kaggle-child-mind-institute-detect-sleep-states/output
+model_dir: /home/yuuki/Desktop/competitions/kaggle/kaggle-child-mind-institute-detect-sleep-states/output/train
 sub_dir: ./

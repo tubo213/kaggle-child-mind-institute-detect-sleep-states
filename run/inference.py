@@ -21,9 +21,14 @@ def load_model(cfg: DictConfig) -> nn.Module:
     )
 
     # load weights
-    if cfg.weight_path is not None:
-        model.load_state_dict(torch.load(cfg.weight_path))
-    model.eval()
+    if cfg.weight is not None:
+        weight_path = (
+            Path(cfg.dir.model_dir)
+            / cfg.weight["exp_name"]
+            / cfg.weight["run_name"]
+            / "model_weights.pth"
+        )
+        model.load_state_dict(torch.load(weight_path))
     return model
 
 
@@ -55,8 +60,8 @@ def main(cfg: DictConfig):
     feature_extractor = SpecFeatureExtractor(n_fft=cfg.n_fft, hop_length=cfg.hop_length)
     model = load_model(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-    feature_extractor = feature_extractor.to(device)
+    model = model.to(device).eval()
+    feature_extractor = feature_extractor.to(device).eval()
 
     preds = []
     keys = []
@@ -65,7 +70,7 @@ def main(cfg: DictConfig):
             x = batch["feature"].to(device)
             x = feature_extractor(x)
             key = batch["key"]
-            pred = model(x)["logits"].sigmoid().cpu().numpy()
+            pred = model(x)["logits"].sigmoid().detach().cpu().numpy()
             preds.append(pred)
             keys.extend(key)
 

@@ -16,7 +16,9 @@ defaults:
 
 exp_name: dummy
 phase: test
-weight_path: null
+weight:
+  exp_name: dummy
+  run_name: single
 
 seed: 42
 duration: 4991
@@ -42,9 +44,5 @@ labels:
 features:
   - "anglez"
   - "enmo"
-  # - "month_sin"
-  # - "month_cos"
   - "hour_sin"
   - "hour_cos"
-  # - "minute_sin"
-  # - "minute_cos"
