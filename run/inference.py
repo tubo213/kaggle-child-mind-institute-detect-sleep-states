@@ -12,7 +12,7 @@ from tqdm import tqdm
 from src.datamodule.seg import TestDataset
 from src.models.common import get_model
 from src.utils.post_process import post_process_for_seg
-
+from pytorch_lightning import seed_everything
 
 def load_model(cfg: DictConfig) -> nn.Module:
     model = get_model(
@@ -58,6 +58,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 
 @hydra.main(config_path="conf", config_name="inference", version_base="1.2")
 def main(cfg: DictConfig):
+    seed_everything(cfg.seed)
     test_dataloader = get_test_dataloader(cfg)
     model = load_model(cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
