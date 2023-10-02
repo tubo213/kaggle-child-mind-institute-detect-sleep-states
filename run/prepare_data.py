@@ -24,6 +24,11 @@ FEATURE_NAMES = [
     "hour_cos",
 ]
 
+ANGLEZ_MEAN = -8.810476
+ANGLEZ_STD = 35.521877
+ENMO_MEAN = 0.041315
+ENMO_STD = 0.101829
+
 
 def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
     rad = 2 * np.pi * (x % max_) / max_
@@ -98,6 +103,8 @@ def main(cfg: DictConfig):
         series_df = (
             series_lf.with_columns(
                 pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
+                (pl.col("anglez") - ANGLEZ_MEAN) / ANGLEZ_STD,
+                (pl.col("enmo") - ENMO_MEAN) / ENMO_STD,
             )
             .select([pl.col("series_id"), pl.col("anglez"), pl.col("enmo"), pl.col("timestamp")])
             .collect(streaming=True)
