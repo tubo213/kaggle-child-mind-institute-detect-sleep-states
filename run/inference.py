@@ -26,7 +26,7 @@ def load_model(cfg: DictConfig) -> nn.Module:
             Path(cfg.dir.model_dir)
             / cfg.weight["exp_name"]
             / cfg.weight["run_name"]
-            / "model_weights.pth"
+            / "best_model.pth"
         )
         model.load_state_dict(torch.load(weight_path))
     return model
