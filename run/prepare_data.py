@@ -101,11 +101,11 @@ def main(cfg: DictConfig):
             .collect(streaming=True)
         )
     num_series = series_df.select("series_id").n_unique()
+    unique_series_ids = series_df.select("series_id").unique().to_numpy()[0]
 
     with trace("Save features"):
-        for series_id, this_series_df in tqdm(
-            series_df.group_by("series_id"), desc="series", total=num_series
-        ):
+        for series_id in tqdm(unique_series_ids, total=num_series):
+            this_series_df = series_df.filter(pl.col("series_id") == series_id)
             this_series_df = add_feature(this_series_df)
             if cfg.chunk:
                 # 特徴量をduration毎にchunkしてnpyで保存
@@ -119,6 +119,9 @@ def main(cfg: DictConfig):
             else:
                 # 特徴量をそれぞれnpyで保存
                 save_each_series(this_series_df, FEATURE_NAMES, all_dir / series_id)
+
+            # 保存したらメモリ解放
+            series_df = series_df.filter(pl.col("series_id") != series_id)
 
 
 if __name__ == "__main__":
