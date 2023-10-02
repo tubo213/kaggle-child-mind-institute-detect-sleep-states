@@ -29,6 +29,7 @@ class SegModel(LightningModule):
         self.feature_extractor = SpecFeatureExtractor(n_fft=cfg.n_fft, hop_length=cfg.hop_length)
         self.model = get_model(cfg, feature_dim, num_classes, duration)
         self.validation_step_outputs: list = []
+        self.best_score = 0
 
     def forward(
         self, x: torch.Tensor, labels: Optional[torch.Tensor]
@@ -82,10 +83,6 @@ class SegModel(LightningModule):
         labels = np.concatenate([x[1] for x in self.validation_step_outputs])
         preds = np.concatenate([x[2] for x in self.validation_step_outputs])
 
-        np.save("keys.npy", np.array(keys))
-        np.save("labels.npy", labels)
-        np.save("preds.npy", preds)
-
         val_pred_df = post_process_for_seg(
             keys=keys,
             preds=preds[:, :, [1, 2]],
@@ -95,10 +92,16 @@ class SegModel(LightningModule):
         val_pred_df = val_pred_df.with_columns(
             (pl.col("step") - 1) * self.cfg.hop_length  # stepがhop_length分ずれているので修正
         )
-        val_pred_df.write_csv("val_pred_df.csv")
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
-        # score = average_precision_score((labels == 1).reshape(-1, 2), preds.reshape(-1, 2))
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
+
+        if score > self.best_score:
+            self.best_score = score
+            np.save("keys.npy", np.array(keys))
+            np.save("labels.npy", labels)
+            np.save("preds.npy", preds)
+            val_pred_df.write_csv("val_pred_df.csv")
+            torch.save(self.model.state_dict(), "best_model.pth")
 
         self.validation_step_outputs.clear()
 
