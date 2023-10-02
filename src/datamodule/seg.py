@@ -13,9 +13,6 @@ from torchaudio.transforms import Spectrogram
 
 from src.utils.common import pad_if_needed
 
-IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
-IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
-
 
 ###################
 # Load Functions
