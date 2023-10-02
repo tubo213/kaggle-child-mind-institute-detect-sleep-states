@@ -6,13 +6,14 @@ import polars as pl
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
+from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.datamodule.seg import TestDataset
 from src.models.common import get_model
 from src.utils.post_process import post_process_for_seg
-from pytorch_lightning import seed_everything
+
 
 def load_model(cfg: DictConfig) -> nn.Module:
     model = get_model(
