@@ -17,7 +17,7 @@ defaults:
 exp_name: dummy
 phase: test
 weight:
-  exp_name: dummy
+  exp_name: ${exp_name}
   run_name: single
 
 seed: 42
