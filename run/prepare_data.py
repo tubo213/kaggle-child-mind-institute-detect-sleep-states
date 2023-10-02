@@ -83,17 +83,26 @@ def main(cfg: DictConfig):
         print(f"Removed All dir: {all_dir}")
 
     with trace("Load series"):
-        series_df = (
-            pl.scan_parquet(
+        if cfg.phase in ["train", "test"]:
+            series_lf = pl.scan_parquet(
                 Path(cfg.dir.data_dir) / f"{cfg.phase}_series.parquet",
                 low_memory=True,
             )
-            .with_columns(
+        elif cfg.phase == "dev":
+            series_lf = pl.scan_parquet(
+                Path(cfg.dir.processed_dir) / f"{cfg.phase}_series.parquet",
+                low_memory=True,
+            )
+        else:
+            raise ValueError(f"Invalid phase: {cfg.phase}")
+        series_df = (
+            series_lf.with_columns(
                 pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
             )
             .select([pl.col("series_id"), pl.col("anglez"), pl.col("enmo"), pl.col("timestamp")])
             .collect(streaming=True)
         )
+
     unique_series_ids = series_df.select("series_id").unique().to_numpy().reshape(-1)
     with trace("Save features"):
         for series_id in tqdm(unique_series_ids):

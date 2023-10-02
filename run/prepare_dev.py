@@ -13,7 +13,10 @@ def main(cfg: DictConfig):
         series_df.select("series_id").unique().collect(streaming=True).sample(200).get_column("series_id")
     )
     dev_series_df = series_df.filter(pl.col("series_id").is_in(sample_200_series_ids))
-    dev_series_df.sink_parquet(data_dir / "dev_series.parquet")
+
+    processed_dir = Path(cfg.dir.processed_dir)
+    processed_dir.mkdir(exist_ok=True, parents=True)
+    dev_series_df.sink_parquet(processed_dir / "dev_series.parquet")
     print("Done")
 
 
