@@ -1,9 +1,9 @@
 name: CNNSpectrogram
-base_filters: 128
+base_filters: 64
 kernel_sizes:
   - 32
   - 16
-  - 4
-stride: 4
+  - ${downsample_rate}
+stride: ${downsample_rate}
 sigmoid: true
 reinit: true
