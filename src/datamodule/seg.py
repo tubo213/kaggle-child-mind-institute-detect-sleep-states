@@ -231,8 +231,7 @@ class TestDataset(Dataset):
     def __init__(self, cfg: DictConfig, feature_dir: Path):
         self.cfg = cfg
         self.feature_dir = feature_dir
-        self.keys = [feature_dir.name for feature_dir in feature_dir.glob("*")]
-        self.eps = 1e-6
+        self.keys = sorted([feature_dir.name for feature_dir in feature_dir.glob("*")])
 
     def __len__(self):
         return len(self.keys)
