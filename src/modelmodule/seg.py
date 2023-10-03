@@ -35,7 +35,7 @@ class SegModel(LightningModule):
         self.best_score = 0
 
     def forward(
-        self, x: torch.Tensor, labels: Optional[torch.Tensor]
+        self, x: torch.Tensor, labels: Optional[torch.Tensor] = None
     ) -> dict[str, Optional[torch.Tensor]]:
         return self.model(x, labels)
 
@@ -92,7 +92,7 @@ class SegModel(LightningModule):
             distance=self.cfg.post_process.distance,
         )
         val_pred_df = val_pred_df.with_columns(
-            pl.col('step') * self.cfg.downsample_rate,
+            pl.col("step") * self.cfg.downsample_rate,
         )
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
