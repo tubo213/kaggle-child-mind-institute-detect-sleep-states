@@ -108,12 +108,13 @@ def main(cfg: DictConfig):
             )
             .select([pl.col("series_id"), pl.col("anglez"), pl.col("enmo"), pl.col("timestamp")])
             .collect(streaming=True)
+            .sort(by=["series_id", "timestamp"])
         )
 
     unique_series_ids = series_df.select("series_id").unique().to_numpy().reshape(-1)
     with trace("Save features"):
         for series_id in tqdm(unique_series_ids):
-            this_series_df = series_df.filter(pl.col("series_id") == series_id)
+            this_series_df = series_df.filter(pl.col("series_id") == series_id,)
             this_series_df = add_feature(this_series_df)
             if cfg.chunk:
                 # 特徴量をduration毎にchunkしてnpyで保存
