@@ -10,7 +10,7 @@ from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.datamodule.seg import TestDataset, load_chunk_features_from_all
+from src.datamodule.seg import TestDataset, load_chunk_features
 from src.models.common import get_model
 from src.utils.common import trace
 from src.utils.post_process import post_process_for_seg
@@ -46,17 +46,14 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
     Returns:
         DataLoader: test dataloader
     """
-    # feature_dir = Path(cfg.dir.processed_dir) / cfg.phase / "chunk"
-    # test_dataset = TestDataset(cfg, feature_dir)
-    # series_ids = [x.name for x in feature_dir.glob('*')]
-    feature_dir = Path(cfg.dir.processed_dir) / cfg.phase / "all"
+    feature_dir = Path(cfg.dir.processed_dir) / cfg.phase
     series_ids = [x.name for x in feature_dir.glob("*")]
-    chunk_features = load_chunk_features_from_all(
+    chunk_features = load_chunk_features(
         duration=cfg.duration,
         feature_names=cfg.features,
         series_ids=series_ids,
         processed_dir=Path(cfg.dir.processed_dir),
-        phase="train",
+        phase=cfg.phase,
     )
     test_dataset = TestDataset(cfg, chunk_features=chunk_features)
     test_dataloader = DataLoader(

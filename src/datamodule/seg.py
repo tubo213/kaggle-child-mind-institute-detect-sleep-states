@@ -37,7 +37,7 @@ def load_features(
     return features
 
 
-def load_chunk_features_from_all(
+def load_chunk_features(
     duration: int,
     feature_names: list[str],
     series_ids: Optional[list[str]],
@@ -47,10 +47,10 @@ def load_chunk_features_from_all(
     features = {}
 
     if series_ids is None:
-        series_ids = [series_dir.name for series_dir in (processed_dir / phase / "all").glob("*")]
+        series_ids = [series_dir.name for series_dir in (processed_dir / phase).glob("*")]
 
     for series_id in series_ids:
-        series_dir = processed_dir / phase / "all" / series_id
+        series_dir = processed_dir / phase / series_id
         this_feature = []
         for feature_name in feature_names:
             this_feature.append(np.load(series_dir / f"{feature_name}.npy"))
@@ -251,31 +251,6 @@ class TestDataset(Dataset):
         }
 
 
-# class TestDataset(Dataset):
-#     def __init__(self, cfg: DictConfig, feature_dir: Path):
-#         self.cfg = cfg
-#         self.feature_dir = feature_dir
-#         self.keys = sorted([feature_dir.name for feature_dir in feature_dir.glob("*")])
-
-#     def __len__(self):
-#         return len(self.keys)
-
-#     def __getitem__(self, idx):
-#         key = self.keys[idx]
-#         feature = self._load_chunk_feature(key)
-
-#         return {
-#             "key": key,
-#             "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
-#         }
-
-#     def _load_chunk_feature(self, key: str) -> np.ndarray:
-#         feature = []
-#         for feature_name in self.cfg.features:
-#             feature.append(np.load(self.feature_dir / key / f"{feature_name}.npy"))
-#         return np.stack(feature, axis=1)
-
-
 ###################
 # DataModule
 ###################
@@ -301,7 +276,7 @@ class SegDataModule(LightningDataModule):
         )
 
         # valid data
-        self.valid_chunk_features = load_chunk_features_from_all(
+        self.valid_chunk_features = load_chunk_features(
             duration=self.cfg.duration,
             feature_names=self.cfg.features,
             series_ids=self.cfg.split.valid_series_ids,
