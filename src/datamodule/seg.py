@@ -25,10 +25,10 @@ def load_features(
     features = {}
 
     if series_ids is None:
-        series_ids = [series_dir.name for series_dir in (processed_dir / phase / "all").glob("*")]
+        series_ids = [series_dir.name for series_dir in (processed_dir / phase).glob("*")]
 
     for series_id in series_ids:
-        series_dir = processed_dir / phase / "all" / series_id
+        series_dir = processed_dir / phase / series_id
         this_feature = []
         for feature_name in feature_names:
             this_feature.append(np.load(series_dir / f"{feature_name}.npy"))
