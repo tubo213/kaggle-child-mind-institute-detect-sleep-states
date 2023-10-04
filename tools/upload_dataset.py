@@ -45,9 +45,11 @@ def main(
     """extentionを指定して、dir以下のファイルをzipに圧縮し、kaggleにアップロードする。
 
     Args:
-        title (str): _description_
-        dir (str): _description_
-        extention (str, optional): _description_. Defaults to '.pth'.
+        title (str): kaggleにアップロードするときのタイトル
+        dir (Path): アップロードするファイルがあるディレクトリ
+        extentions (list[str], optional): アップロードするファイルの拡張子.
+        user_name (str, optional): kaggleのユーザー名.
+        new (bool, optional): 新規データセットとしてアップロードするかどうか.
     """
     tmp_dir = Path("./tmp")
     tmp_dir.mkdir(parents=True, exist_ok=True)
