@@ -190,17 +190,19 @@ class TrainDataset(Dataset):
 
 class ValidDataset(Dataset):
     def __init__(
-        self, cfg: DictConfig, event_df: pl.DataFrame, chunk_features: dict[str, np.ndarray]
+        self,
+        cfg: DictConfig,
+        chunk_features: dict[str, np.ndarray],
+        event_df: pl.DataFrame,
     ):
         self.cfg = cfg
+        self.chunk_features = chunk_features
+        self.keys = list(chunk_features.keys())
         self.event_df = (
             event_df.pivot(index=["series_id", "night"], columns="event", values="step")
             .drop_nulls()
             .to_pandas()
         )
-        self.chunk_features = chunk_features
-        self.keys = list(chunk_features.keys())
-        self.eps = 1e-6
 
     def __len__(self):
         return len(self.keys)
@@ -219,7 +221,6 @@ class ValidDataset(Dataset):
             start,
             end,
         )
-
         return {
             "key": key,
             "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
@@ -228,28 +229,51 @@ class ValidDataset(Dataset):
 
 
 class TestDataset(Dataset):
-    def __init__(self, cfg: DictConfig, feature_dir: Path):
+    def __init__(
+        self,
+        cfg: DictConfig,
+        chunk_features: dict[str, np.ndarray],
+    ):
         self.cfg = cfg
-        self.feature_dir = feature_dir
-        self.keys = sorted([feature_dir.name for feature_dir in feature_dir.glob("*")])
+        self.chunk_features = chunk_features
+        self.keys = list(chunk_features.keys())
 
     def __len__(self):
         return len(self.keys)
 
     def __getitem__(self, idx):
         key = self.keys[idx]
-        feature = self._load_chunk_feature(key)
+        feature = self.chunk_features[key]
 
         return {
             "key": key,
             "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
         }
 
-    def _load_chunk_feature(self, key: str) -> np.ndarray:
-        feature = []
-        for feature_name in self.cfg.features:
-            feature.append(np.load(self.feature_dir / key / f"{feature_name}.npy"))
-        return np.stack(feature, axis=1)
+
+# class TestDataset(Dataset):
+#     def __init__(self, cfg: DictConfig, feature_dir: Path):
+#         self.cfg = cfg
+#         self.feature_dir = feature_dir
+#         self.keys = sorted([feature_dir.name for feature_dir in feature_dir.glob("*")])
+
+#     def __len__(self):
+#         return len(self.keys)
+
+#     def __getitem__(self, idx):
+#         key = self.keys[idx]
+#         feature = self._load_chunk_feature(key)
+
+#         return {
+#             "key": key,
+#             "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
+#         }
+
+#     def _load_chunk_feature(self, key: str) -> np.ndarray:
+#         feature = []
+#         for feature_name in self.cfg.features:
+#             feature.append(np.load(self.feature_dir / key / f"{feature_name}.npy"))
+#         return np.stack(feature, axis=1)
 
 
 ###################
@@ -304,8 +328,8 @@ class SegDataModule(LightningDataModule):
     def val_dataloader(self):
         valid_dataset = ValidDataset(
             cfg=self.cfg,
-            event_df=self.valid_event_df,
             chunk_features=self.valid_chunk_features,
+            event_df=self.valid_event_df,
         )
         valid_loader = torch.utils.data.DataLoader(
             valid_dataset,
