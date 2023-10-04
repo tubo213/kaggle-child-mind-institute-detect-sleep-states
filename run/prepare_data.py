@@ -88,21 +88,14 @@ def main(cfg: DictConfig):
             .collect(streaming=True)
             .sort(by=["series_id", "timestamp"])
         )
-
-    unique_series_ids = series_df.select("series_id").unique().to_numpy().reshape(-1)
+        n_unique = series_df.get_column("series_id").n_unique()
     with trace("Save features"):
-        for series_id in tqdm(unique_series_ids):
-            this_series_df = series_df.filter(
-                pl.col("series_id") == series_id,
-            )
+        for series_id, this_series_df in tqdm(series_df.group_by("series_id"), total=n_unique):
+            # 特徴量を追加
             this_series_df = add_feature(this_series_df)
 
             # 特徴量をそれぞれnpyで保存
             save_each_series(this_series_df, FEATURE_NAMES, processed_dir / series_id)
-
-            # 保存したらメモリ解放
-            series_df = series_df.filter(pl.col("series_id") != series_id)
-
 
 if __name__ == "__main__":
     main()
