@@ -49,7 +49,7 @@ def save_each_series(this_series_df: pl.DataFrame, columns: list[str], output_di
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for col_name in columns:
-        x = this_series_df.get_column(col_name).to_numpy()
+        x = this_series_df.get_column(col_name).to_numpy(zero_copy_only=True)
         np.save(output_dir / f"{col_name}.npy", x)
 
 
