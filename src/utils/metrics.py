@@ -5,6 +5,7 @@ video.
 
 """
 
+from bisect import bisect_left
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -147,6 +148,7 @@ def event_detection_ap(
     ground_truths_grouped = aggregation_keys.merge(
         ground_truths, on=[event_column_name, series_id_column_name], how="left"
     ).groupby([event_column_name, "tolerance", series_id_column_name])
+
     # Match detections to ground truth events by evaluation group
     detections_matched = []
     for key in aggregation_keys.itertuples(index=False):
@@ -174,30 +176,46 @@ def event_detection_ap(
     return mean_ap
 
 
+def find_nearest_time_idx(times, target_time, excluded_indices, tolerance):
+    """Find the index of the nearest time to the target_time
+    that is not in excluded_indices."""
+    idx = bisect_left(times, target_time)
+
+    best_idx = None
+    best_error = float("inf")
+
+    offset_range = min(len(times), tolerance)
+    for offset in range(-offset_range, offset_range):  # Check the exact, one before, and one after
+        check_idx = idx + offset
+        if 0 <= check_idx < len(times) and check_idx not in excluded_indices:
+            error = abs(times[check_idx] - target_time)
+            if error < best_error:
+                best_error = error
+                best_idx = check_idx
+
+    return best_idx, best_error
+
+
 def match_detections(
     tolerance: float, ground_truths: pd.DataFrame, detections: pd.DataFrame
 ) -> pd.DataFrame:
-    """Match detections to ground truth events.
-    Arguments are taken from a common event x tolerance x series_id evaluation group."""
     detections_sorted = detections.sort_values(score_column_name, ascending=False).dropna()
     is_matched = np.full_like(detections_sorted[event_column_name], False, dtype=bool)
-    gts_matched = set()
+    ground_truths_times = ground_truths.sort_values(time_column_name)[time_column_name].tolist()
+    matched_gt_indices: set[int] = set()
+
     for i, det in enumerate(detections_sorted.itertuples(index=False)):
-        best_error = tolerance
-        best_gt = None
+        det_time = getattr(det, time_column_name)
 
-        for gt in ground_truths.itertuples(index=False):
-            error = abs(getattr(det, time_column_name) - getattr(gt, time_column_name))
-            if error < best_error and gt not in gts_matched:
-                best_gt = gt
-                best_error = error
+        best_idx, best_error = find_nearest_time_idx(
+            ground_truths_times, det_time, matched_gt_indices, tolerance
+        )
 
-        if best_gt is not None:
+        if best_idx is not None and best_error < tolerance:
             is_matched[i] = True
-            gts_matched.add(best_gt)
+            matched_gt_indices.add(best_idx)
 
     detections_sorted["matched"] = is_matched
-
     return detections_sorted
 
 
