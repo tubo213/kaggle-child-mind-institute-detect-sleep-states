@@ -48,6 +48,7 @@ dev-dependencies = [
     "mypy>=1.4.1",
     "jupyter>=1.0.0",
     "ruff~=0.0.291",
+    "pytest>=7.4.2",
 ]
 
 [tool.black]
