@@ -32,6 +32,7 @@ dependencies = [
     "torchvision>=0.15.2",
     "segmentation-models-pytorch>=0.3.3",
     "rich>=13.6.0",
+    "types-tqdm>=4.66.0.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.11"

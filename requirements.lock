@@ -147,6 +147,7 @@ traitlets==5.10.1
 transformers==4.33.2
 triton==2.0.0
 types-pyyaml==6.0.12.12
+types-tqdm==4.66.0.2
 typing-extensions==4.8.0
 tzdata==2023.3
 tzlocal==5.0.1
