@@ -6,8 +6,10 @@ import torch
 import torch.optim as optim
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
+from torchvision.transforms.functional import resize
 from transformers import get_cosine_schedule_with_warmup
 
+from src.datamodule.seg import nearest_valid_size
 from src.models.common import get_model
 from src.utils.metrics import event_detection_ap
 from src.utils.post_process import post_process_for_seg
@@ -25,12 +27,14 @@ class SegModel(LightningModule):
         super().__init__()
         self.cfg = cfg
         self.val_event_df = val_event_df
+        num_timesteps = nearest_valid_size(int(duration * cfg.upsample_rate), cfg.downsample_rate)
         self.model = get_model(
             cfg,
             feature_dim=feature_dim,
             n_classes=num_classes,
-            num_timesteps=duration // cfg.downsample_rate,
+            num_timesteps=num_timesteps // cfg.downsample_rate,
         )
+        self.duration = duration
         self.validation_step_outputs: list = []
         self.best_score = 0
 
@@ -48,7 +52,7 @@ class SegModel(LightningModule):
     def __share_step(self, batch, mode: str) -> torch.Tensor:
         output = self.model(batch["feature"], batch["label"])
         loss = output["loss"]
-        logits = output["logits"]
+        logits = output["logits"]  # (batch_size, n_timesteps, n_classes)
 
         if mode == "train":
             self.log(
@@ -60,11 +64,21 @@ class SegModel(LightningModule):
                 prog_bar=True,
             )
         elif mode == "val":
+            resized_logits = resize(
+                logits.sigmoid().detach().cpu(),
+                size=[self.duration, logits.shape[2]],
+                antialias=False,
+            )
+            resized_labels = resize(
+                batch["label"].detach().cpu(),
+                size=[self.duration, logits.shape[2]],
+                antialias=False,
+            )
             self.validation_step_outputs.append(
                 (
                     batch["key"],
-                    batch["label"].detach().cpu().numpy(),
-                    logits.sigmoid().detach().cpu().numpy(),
+                    resized_labels.numpy(),
+                    resized_logits.numpy(),
                 )
             )
             self.log(
@@ -90,9 +104,6 @@ class SegModel(LightningModule):
             preds=preds[:, :, [1, 2]],
             score_th=self.cfg.post_process.score_th,
             distance=self.cfg.post_process.distance,
-        )
-        val_pred_df = val_pred_df.with_columns(
-            pl.col("step") * self.cfg.downsample_rate,
         )
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
