@@ -95,7 +95,9 @@ def main(cfg: DictConfig):
             this_series_df = add_feature(this_series_df)
 
             # 特徴量をそれぞれnpyで保存
-            save_each_series(this_series_df, FEATURE_NAMES, processed_dir / series_id)
+            series_dir = processed_dir / series_id  # type: ignore
+            save_each_series(this_series_df, FEATURE_NAMES, series_dir)
+
 
 if __name__ == "__main__":
     main()
