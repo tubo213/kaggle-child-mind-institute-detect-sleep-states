@@ -5,7 +5,12 @@ import hydra
 import torch
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import (
+    LearningRateMonitor,
+    ModelCheckpoint,
+    RichModelSummary,
+    RichProgressBar,
+)
 from pytorch_lightning.loggers import WandbLogger
 
 from src.datamodule.seg import SegDataModule
@@ -37,6 +42,8 @@ def main(cfg: DictConfig):  # type: ignore
         save_last=False,
     )
     lr_monitor = LearningRateMonitor("epoch")
+    progress_bar = RichProgressBar()
+    model_summary = RichModelSummary()
 
     # init experiment logger
     pl_logger = WandbLogger(
@@ -56,7 +63,7 @@ def main(cfg: DictConfig):  # type: ignore
         max_steps=cfg.epoch * len(datamodule.train_dataloader()),
         gradient_clip_val=cfg.gradient_clip_val,
         accumulate_grad_batches=cfg.accumulate_grad_batches,
-        callbacks=[checkpoint_cb, lr_monitor],
+        callbacks=[checkpoint_cb, lr_monitor, progress_bar, model_summary],
         logger=pl_logger,
         # resume_from_checkpoint=resume_from,
         num_sanity_val_steps=0,
