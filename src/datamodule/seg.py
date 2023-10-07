@@ -9,6 +9,7 @@ import torch
 from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset
+from torchvision.transforms.functional import resize
 
 from src.utils.common import pad_if_needed
 
@@ -80,7 +81,7 @@ def random_crop(pos: int, duration: int, max_end) -> tuple[int, int]:
 # Label
 ###################
 def get_label(
-    this_event_df: pd.DataFrame, num_frames: int, downsample_rate: int, start: int, end: int
+    this_event_df: pd.DataFrame, num_frames: int, duration: int, start: int, end: int
 ) -> np.ndarray:
     # # (start, end)の範囲と(onset, wakeup)の範囲が重なるものを取得
     this_event_df = this_event_df.query("@start <= wakeup & onset <= @end")
@@ -88,8 +89,8 @@ def get_label(
     label = np.zeros((num_frames, 3))
     # onset, wakeup, sleepのラベルを作成
     for onset, wakeup in this_event_df[["onset", "wakeup"]].to_numpy():
-        onset = (onset - start) // downsample_rate
-        wakeup = (wakeup - start) // downsample_rate
+        onset = int((onset - start) / duration * num_frames)
+        wakeup = int((wakeup - start) / duration * num_frames)
         if onset >= 0 and onset < num_frames:
             label[onset, 1] = 1
         if wakeup < num_frames and wakeup >= 0:
@@ -137,6 +138,19 @@ def negative_sampling(this_event_df: pd.DataFrame, num_steps: int) -> int:
 ###################
 # Dataset
 ###################
+def nearest_valid_size(input_size: int, downsample_rate: int) -> int:
+    """
+    (x // hop_length) % 32 == 0
+    を満たすinput_sizeに最も近いxを返す
+    """
+
+    while (input_size // downsample_rate) % 32 != 0:
+        input_size += 1
+    assert (input_size // downsample_rate) % 32 == 0
+
+    return input_size
+
+
 class TrainDataset(Dataset):
     def __init__(
         self,
@@ -151,7 +165,10 @@ class TrainDataset(Dataset):
             .to_pandas()
         )
         self.features = features
-        self.eps = 1e-6
+        self.num_features = len(cfg.features)
+        self.upsampled_num_frames = nearest_valid_size(
+            int(self.cfg.duration * self.cfg.upsample_rate), self.cfg.downsample_rate
+        )
 
     def __len__(self):
         return len(self.event_df)
@@ -174,17 +191,25 @@ class TrainDataset(Dataset):
         start, end = random_crop(pos, self.cfg.duration, n_steps)
         feature = this_feature[start:end]  # (duration, num_features)
 
+        # upsample
+        feature = torch.FloatTensor(feature.T).unsqueeze(0)  # (1, num_features, duration)
+        feature = resize(
+            feature,
+            size=[self.num_features, self.upsampled_num_frames],
+            antialias=False,
+        ).squeeze(0)
+
         # from hard label to gaussian label
-        num_frames = self.cfg.duration // self.cfg.downsample_rate
-        label = get_label(this_event_df, num_frames, self.cfg.downsample_rate, start, end)
+        num_frames = self.upsampled_num_frames // self.cfg.downsample_rate
+        label = get_label(this_event_df, num_frames, self.cfg.duration, start, end)
         label[:, [1, 2]] = gaussian_label(
             label[:, [1, 2]], offset=self.cfg.offset, sigma=self.cfg.sigma
         )
 
         return {
             "series_id": series_id,
-            "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
-            "label": torch.FloatTensor(label),  # (duration, num_classes)
+            "feature": feature,  # (num_features, upsampled_num_frames)
+            "label": torch.FloatTensor(label),  # (pred_length, num_classes)
         }
 
 
@@ -203,6 +228,10 @@ class ValidDataset(Dataset):
             .drop_nulls()
             .to_pandas()
         )
+        self.num_features = len(cfg.features)
+        self.upsampled_num_frames = nearest_valid_size(
+            int(self.cfg.duration * self.cfg.upsample_rate), self.cfg.downsample_rate
+        )
 
     def __len__(self):
         return len(self.keys)
@@ -210,20 +239,28 @@ class ValidDataset(Dataset):
     def __getitem__(self, idx):
         key = self.keys[idx]
         feature = self.chunk_features[key]
+        feature = torch.FloatTensor(feature.T).unsqueeze(0)  # (1, num_features, duration)
+        feature = resize(
+            feature,
+            size=[self.num_features, self.upsampled_num_frames],
+            antialias=False,
+        ).squeeze(0)
+
         series_id, chunk_id = key.split("_")
         chunk_id = int(chunk_id)
         start = chunk_id * self.cfg.duration
         end = start + self.cfg.duration
+        num_frames = self.upsampled_num_frames // self.cfg.downsample_rate
         label = get_label(
             self.event_df.query("series_id == @series_id").reset_index(drop=True),
-            self.cfg.duration // self.cfg.downsample_rate,
-            self.cfg.downsample_rate,
+            num_frames,
+            self.cfg.duration,
             start,
             end,
         )
         return {
             "key": key,
-            "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
+            "feature": feature,  # (num_features, duration)
             "label": torch.FloatTensor(label),  # (duration, num_classes)
         }
 
@@ -237,6 +274,10 @@ class TestDataset(Dataset):
         self.cfg = cfg
         self.chunk_features = chunk_features
         self.keys = list(chunk_features.keys())
+        self.num_features = len(cfg.features)
+        self.upsampled_num_frames = nearest_valid_size(
+            int(self.cfg.duration * self.cfg.upsample_rate), self.cfg.downsample_rate
+        )
 
     def __len__(self):
         return len(self.keys)
@@ -244,10 +285,16 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         key = self.keys[idx]
         feature = self.chunk_features[key]
+        feature = torch.FloatTensor(feature.T).unsqueeze(0)  # (1, num_features, duration)
+        feature = resize(
+            feature,
+            size=[self.num_features, self.upsampled_num_frames],
+            antialias=True,
+        ).squeeze(0)
 
         return {
             "key": key,
-            "feature": torch.FloatTensor(feature.T),  # (num_features, duration)
+            "feature": feature,  # (num_features, duration)
         }
 
 
