@@ -56,6 +56,9 @@ dev-dependencies = [
 [tool.black]
 line-length = 99
 
+[tool.mypy]
+ignore_missing_imports = true
+
 [tool.ruff]
 select = [
     "F", # pyflakes
