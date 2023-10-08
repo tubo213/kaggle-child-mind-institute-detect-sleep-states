@@ -1,4 +1,4 @@
-name: UNet1D
+name: UNet1DDecoder
 bilinear: false
 se: false
 res: false
