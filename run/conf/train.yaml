@@ -12,9 +12,9 @@ hydra:
 defaults:
   - _self_
   - dir: local
-  - model: SpecCNN
-  - feature_extractor: cnnspectrogram
-  - decoder: unet1d
+  - model: Spec2DCNN
+  - feature_extractor: CNNSpectrogram
+  - decoder: UNet1DDecoder
   - split: fold_0
 
 seed: 42
@@ -48,7 +48,7 @@ post_process:
 
 # label
 labels:
-  - 'awake'
+  - "awake"
   - "event_onset"
   - "event_wakeup"
 

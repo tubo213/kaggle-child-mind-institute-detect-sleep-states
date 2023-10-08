@@ -112,7 +112,7 @@ def create_layer_norm(channel, length):
     return nn.LayerNorm([channel, length])
 
 
-class UNet1D(nn.Module):
+class UNet1DDecoder(nn.Module):
     def __init__(
         self,
         n_channels: int,
@@ -209,5 +209,5 @@ class UNet1D(nn.Module):
         x = self.up4(x, x1)
 
         # classifier
-        logits = self.cls(x)
-        return logits
+        logits = self.cls(x) # (batch_size, n_classes, n_timesteps)
+        return logits.transpose(1, 2)  # (batch_size, n_timesteps, n_classes)

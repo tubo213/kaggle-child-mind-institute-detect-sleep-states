@@ -1,9 +1,10 @@
 import torch.nn as nn
 from omegaconf import DictConfig
 
-from src.models.decoder.unet1d import UNet1D
+from src.models.decoder.lstmdecoder import LSTMDecoder
+from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
-from src.models.speccnn import SpecCNN
+from src.models.spec2Dcnn import Spec2DCNN
 
 
 def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int) -> nn.Module:
@@ -25,8 +26,9 @@ def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int)
 
 
 def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps: int) -> nn.Module:
-    if cfg.decoder.name == "UNet1D":
-        decoder = UNet1D(
+    decoder: UNet1DDecoder | LSTMDecoder
+    if cfg.decoder.name == "UNet1DDecoder":
+        decoder = UNet1DDecoder(
             n_channels=n_channels,
             n_classes=n_classes,
             duration=num_timesteps,
@@ -36,6 +38,15 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
             scale_factor=cfg.decoder.scale_factor,
             dropout=cfg.decoder.dropout,
         )
+    elif cfg.decoder.name == "LSTMDecoder":
+        decoder = LSTMDecoder(
+            input_size=n_channels,
+            hidden_size=cfg.decoder.hidden_size,
+            num_layers=cfg.decoder.num_layers,
+            dropout=cfg.decoder.dropout,
+            bidirectional=cfg.decoder.bidirectional,
+            n_classes=n_classes,
+        )
     else:
         raise ValueError(f"Invalid decoder name: {cfg.decoder.name}")
 
@@ -43,12 +54,12 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
 
 
 def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int) -> nn.Module:
-    if cfg.model.name == "SpecCNN":
+    if cfg.model.name == "Spec2DCNN":
         feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)
         decoder = get_decoder(
             cfg, feature_extractor.height, n_classes, num_timesteps  # type: ignore
         )
-        model = SpecCNN(
+        model = Spec2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
             encoder_name=cfg.model.encoder_name,

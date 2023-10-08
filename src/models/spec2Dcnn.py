@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 
-class SpecCNN(nn.Module):
+class Spec2DCNN(nn.Module):
     def __init__(
         self,
         feature_extractor: nn.Module,
@@ -16,13 +16,13 @@ class SpecCNN(nn.Module):
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
-        self.decoder = decoder
         self.encoder = smp.Unet(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=in_channels,
             classes=1,
         )
+        self.decoder = decoder
         self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(
@@ -39,7 +39,6 @@ class SpecCNN(nn.Module):
         x = self.feature_extractor(x)  # (batch_size, n_channels, height, n_timesteps)
         x = self.encoder(x).squeeze(1)  # (batch_size, height, n_timesteps)
         logits = self.decoder(x)  # (batch_size, n_classes, n_timesteps)
-        logits = logits.transpose(1, 2)  # (batch_size, n_timesteps, n_classes)
 
         output = {"logits": logits}
         if labels is not None:
