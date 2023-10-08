@@ -43,7 +43,7 @@ def main(cfg: DictConfig):  # type: ignore
     )
     lr_monitor = LearningRateMonitor("epoch")
     progress_bar = RichProgressBar()
-    model_summary = RichModelSummary()
+    model_summary = RichModelSummary(max_depth=2)
 
     # init experiment logger
     pl_logger = WandbLogger(

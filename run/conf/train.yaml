@@ -19,8 +19,9 @@ defaults:
 
 seed: 42
 exp_name: dummy
-duration: 4992 # durationは32の倍数
-downsample_rate: 4 # durationをdownsample_rateで割った値がnum_framesになる
+duration: 4992 # duration * 5 = 秒数
+downsample_rate: 4
+upsample_rate: 1
 
 # training
 epoch: 5
@@ -33,7 +34,7 @@ gradient_clip_val: 1.0
 accumulate_grad_batches: 1
 monitor: val_score
 monitor_mode: max
-check_val_every_n_epoch: 1
+check_val_every_n_epoch: 5
 
 # Dataset
 offset: 10

@@ -8,20 +8,22 @@ import torch.nn as nn
 from omegaconf import DictConfig
 from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
+from torchvision.transforms.functional import resize
 from tqdm import tqdm
 
-from src.datamodule.seg import TestDataset, load_chunk_features
+from src.datamodule.seg import TestDataset, load_chunk_features, nearest_valid_size
 from src.models.common import get_model
 from src.utils.common import trace
 from src.utils.post_process import post_process_for_seg
 
 
 def load_model(cfg: DictConfig) -> nn.Module:
+    num_timesteps = nearest_valid_size(int(cfg.duration * cfg.upsample_rate), cfg.downsample_rate)
     model = get_model(
         cfg,
         feature_dim=len(cfg.features),
         n_classes=len(cfg.labels),
-        num_timesteps=cfg.duration // cfg.downsample_rate,
+        num_timesteps=num_timesteps // cfg.downsample_rate,
     )
 
     # load weights
@@ -68,7 +70,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 
 
 def inference(
-    loader: DataLoader, model: nn.Module, device: torch.device, use_amp
+    duration: int, loader: DataLoader, model: nn.Module, device: torch.device, use_amp
 ) -> tuple[list[str], np.ndarray]:
     model = model.to(device)
     model.eval()
@@ -80,6 +82,11 @@ def inference(
             with torch.cuda.amp.autocast(enabled=use_amp):
                 x = batch["feature"].to(device)
                 pred = model(x)["logits"].sigmoid()
+                pred = resize(
+                    pred.detach().cpu(),
+                    size=[duration, pred.shape[2]],
+                    antialias=False,
+                )
             key = batch["key"]
             preds.append(pred.detach().cpu().numpy())
             keys.extend(key)
@@ -98,9 +105,6 @@ def make_submission(
         score_th=score_th,
         distance=distance,  # type: ignore
     )
-    sub_df = sub_df.with_columns(
-        pl.col("step") * downsample_rate
-    )  # stepがdownsample_rate分ずれているので修正
 
     return sub_df
 
@@ -116,7 +120,7 @@ def main(cfg: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     with trace("inference"):
-        keys, preds = inference(test_dataloader, model, device, use_amp=cfg.use_amp)
+        keys, preds = inference(cfg.duration, test_dataloader, model, device, use_amp=cfg.use_amp)
 
     with trace("make submission"):
         sub_df = make_submission(
