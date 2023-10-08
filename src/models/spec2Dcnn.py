@@ -16,13 +16,13 @@ class Spec2DCNN(nn.Module):
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
-        self.decoder = decoder
         self.encoder = smp.Unet(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=in_channels,
             classes=1,
         )
+        self.decoder = decoder
         self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(
