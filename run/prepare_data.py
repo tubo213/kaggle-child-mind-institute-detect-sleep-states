@@ -22,6 +22,10 @@ FEATURE_NAMES = [
     "enmo",
     "hour_sin",
     "hour_cos",
+    "month_sin",
+    "month_cos",
+    "minute_sin",
+    "minute_cos",
 ]
 
 ANGLEZ_MEAN = -8.810476
@@ -41,6 +45,8 @@ def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
 def add_feature(series_df: pl.DataFrame) -> pl.DataFrame:
     series_df = series_df.with_columns(
         *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
+        *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
+        *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
     ).select("series_id", *FEATURE_NAMES)
     return series_df
 
