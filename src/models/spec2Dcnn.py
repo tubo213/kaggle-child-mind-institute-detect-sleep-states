@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 
-class SpecCNN(nn.Module):
+class Spec2DCNN(nn.Module):
     def __init__(
         self,
         feature_extractor: nn.Module,
