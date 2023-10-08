@@ -2,6 +2,7 @@ import torch.nn as nn
 from omegaconf import DictConfig
 
 from src.models.decoder.lstmdecoder import LSTMDecoder
+from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
 from src.models.spec2Dcnn import Spec2DCNN
@@ -26,7 +27,7 @@ def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int)
 
 
 def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps: int) -> nn.Module:
-    decoder: UNet1DDecoder | LSTMDecoder
+    decoder: UNet1DDecoder | LSTMDecoder | TransformerDecoder
     if cfg.decoder.name == "UNet1DDecoder":
         decoder = UNet1DDecoder(
             n_channels=n_channels,
@@ -45,6 +46,15 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
             num_layers=cfg.decoder.num_layers,
             dropout=cfg.decoder.dropout,
             bidirectional=cfg.decoder.bidirectional,
+            n_classes=n_classes,
+        )
+    elif cfg.decoder.name == "TransformerDecoder":
+        decoder = TransformerDecoder(
+            input_size=n_channels,
+            hidden_size=cfg.decoder.hidden_size,
+            num_layers=cfg.decoder.num_layers,
+            dropout=cfg.decoder.dropout,
+            nhead=cfg.decoder.nhead,
             n_classes=n_classes,
         )
     else:
