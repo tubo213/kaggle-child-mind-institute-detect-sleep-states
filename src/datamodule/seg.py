@@ -289,7 +289,7 @@ class TestDataset(Dataset):
         feature = resize(
             feature,
             size=[self.num_features, self.upsampled_num_frames],
-            antialias=True,
+            antialias=False,
         ).squeeze(0)
 
         return {

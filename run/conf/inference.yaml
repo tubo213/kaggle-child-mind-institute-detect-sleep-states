@@ -25,6 +25,7 @@ weight:
 seed: 42
 duration: 4992 # durationは32の倍数
 downsample_rate: 4 # durationをdownsample_rateで割った値がnum_framesになる
+upsample_rate: 1
 batch_size: 32
 num_workers: 2
 use_amp: true
