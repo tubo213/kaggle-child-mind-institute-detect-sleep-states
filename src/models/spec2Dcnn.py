@@ -39,7 +39,6 @@ class Spec2DCNN(nn.Module):
         x = self.feature_extractor(x)  # (batch_size, n_channels, height, n_timesteps)
         x = self.encoder(x).squeeze(1)  # (batch_size, height, n_timesteps)
         logits = self.decoder(x)  # (batch_size, n_classes, n_timesteps)
-        logits = logits.transpose(1, 2)  # (batch_size, n_timesteps, n_classes)
 
         output = {"logits": logits}
         if labels is not None:
