@@ -2,6 +2,7 @@ import torch.nn as nn
 from omegaconf import DictConfig
 
 from src.models.decoder.lstmdecoder import LSTMDecoder
+from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
@@ -27,7 +28,7 @@ def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int)
 
 
 def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps: int) -> nn.Module:
-    decoder: UNet1DDecoder | LSTMDecoder | TransformerDecoder
+    decoder: UNet1DDecoder | LSTMDecoder | TransformerDecoder | MLPDecoder
     if cfg.decoder.name == "UNet1DDecoder":
         decoder = UNet1DDecoder(
             n_channels=n_channels,
@@ -57,6 +58,8 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
             nhead=cfg.decoder.nhead,
             n_classes=n_classes,
         )
+    elif cfg.decoder.name == "MLPDecoder":
+        decoder = MLPDecoder(n_channels=n_channels, n_classes=n_classes)
     else:
         raise ValueError(f"Invalid decoder name: {cfg.decoder.name}")
 
