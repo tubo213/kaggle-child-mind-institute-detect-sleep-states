@@ -22,5 +22,8 @@
   "mypy-type-checker.path": [
     "${workspaceFolder}/.venv/bin/mypy"
   ],
-  "files.autoSave": "afterDelay"
+  "files.autoSave": "afterDelay",
+  "flake8.args": [
+    "--max-line-length=99",
+  ]
 }
