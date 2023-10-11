@@ -19,6 +19,7 @@ class MLPDecoder(nn.Module):
         Returns:
             torch.Tensor: (batch_size, n_timesteps, n_classes)
         """
+        x = x.transpose(1, 2)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, p=0.5)
         x = F.relu(self.fc2(x))
