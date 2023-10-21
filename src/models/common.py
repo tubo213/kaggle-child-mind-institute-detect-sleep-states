@@ -92,6 +92,8 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
             encoder_name=cfg.model.encoder_name,
             in_channels=feature_extractor.out_chans,  # type: ignore
             encoder_weights=cfg.model.encoder_weights,
+            mixup_alpha=cfg.augmentation.mixup_alpha,
+            cutmix_alpha=cfg.augmentation.cutmix_alpha,
         )
     else:
         raise NotImplementedError
