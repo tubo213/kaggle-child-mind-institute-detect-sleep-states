@@ -7,6 +7,7 @@ from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
 from src.models.feature_extractor.panns import PANNsFeatureExtractor
+from src.models.spec1D import Spec1D
 from src.models.spec2Dcnn import Spec2DCNN
 
 
@@ -81,6 +82,7 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
 
 
 def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int) -> nn.Module:
+    model: Spec1D | Spec2DCNN
     if cfg.model.name == "Spec2DCNN":
         feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)
         decoder = get_decoder(
@@ -95,8 +97,18 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
             mixup_alpha=cfg.augmentation.mixup_alpha,
             cutmix_alpha=cfg.augmentation.cutmix_alpha,
         )
+    elif cfg.model.name == "Spec1D":
+        feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)
+        decoder = get_decoder(
+            cfg, feature_extractor.height, n_classes, num_timesteps  # type: ignore
+        )
+        model = Spec1D(
+            feature_extractor=feature_extractor,
+            decoder=decoder,
+            mixup_alpha=cfg.augmentation.mixup_alpha,
+            cutmix_alpha=cfg.augmentation.cutmix_alpha,
+        )
     else:
         raise NotImplementedError
 
-    return model
     return model
