@@ -47,6 +47,7 @@ augmentation:
   mixup_alpha: 0.4
   cutmix_prob: 0.5
   cutmix_alpha: 0.4
+  
 # post_process
 post_process:
   score_th: 0.02
