@@ -93,10 +93,11 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
             in_channels=feature_extractor.out_chans,  # type: ignore
             encoder_weights=cfg.model.encoder_weights,
             mixup_alpha=cfg.augmentation.mixup_alpha,
+            mixup_prob=cfg.augmentation.mixup_prob,
             cutmix_alpha=cfg.augmentation.cutmix_alpha,
+            cutmix_prob=cfg.augmentation.cutmix_prob,
         )
     else:
         raise NotImplementedError
 
-    return model
     return model
