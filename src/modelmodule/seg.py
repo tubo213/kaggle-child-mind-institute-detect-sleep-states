@@ -50,8 +50,12 @@ class SegModel(LightningModule):
         return self.__share_step(batch, "val")
 
     def __share_step(self, batch, mode: str) -> torch.Tensor:
-        do_mixup = True if mode == "train" else False
-        do_cutmix = True if mode == "train" else False
+        if mode == "train":
+            do_mixup = np.random.rand() < self.cfg.augmentation.mixup_prob
+            do_cutmix = np.random.rand() < self.cfg.augmentation.cutmix_prob
+        elif mode == "val":
+            do_mixup = False
+            do_cutmix = False
 
         output = self.model(batch["feature"], batch["label"], do_mixup, do_cutmix)
         loss = output["loss"]

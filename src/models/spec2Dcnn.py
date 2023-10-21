@@ -17,9 +17,7 @@ class Spec2DCNN(nn.Module):
         in_channels: int,
         encoder_weights: Optional[str] = None,
         mixup_alpha: float = 0.5,
-        mixup_prob: float = 0.5,
         cutmix_alpha: float = 0.5,
-        cutmix_prob: float = 0.5,
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
@@ -30,8 +28,8 @@ class Spec2DCNN(nn.Module):
             classes=1,
         )
         self.decoder = decoder
-        self.mixup = Mixup(mixup_alpha, mixup_prob)
-        self.cutmix = Cutmix(cutmix_alpha, cutmix_prob)
+        self.mixup = Mixup(mixup_alpha)
+        self.cutmix = Cutmix(cutmix_alpha)
         self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(
