@@ -6,13 +6,14 @@ from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
+from src.models.feature_extractor.lstm import LSTMFeatureExtractor
 from src.models.feature_extractor.panns import PANNsFeatureExtractor
 from src.models.spec1D import Spec1D
 from src.models.spec2Dcnn import Spec2DCNN
 
 
 def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int) -> nn.Module:
-    feature_extractor: CNNSpectrogram | PANNsFeatureExtractor
+    feature_extractor: CNNSpectrogram | PANNsFeatureExtractor | LSTMFeatureExtractor
     if cfg.feature_extractor.name == "CNNSpectrogram":
         feature_extractor = CNNSpectrogram(
             in_channels=feature_dim,
@@ -35,6 +36,14 @@ def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int)
             conv=nn.Conv1d,
             reinit=cfg.feature_extractor.reinit,
             win_length=cfg.feature_extractor.win_length,
+        )
+    elif cfg.feature_extractor.name == "LSTMFeatureExtractor":
+        feature_extractor = LSTMFeatureExtractor(
+            in_channels=feature_dim,
+            hidden_size=cfg.feature_extractor.hidden_size,
+            num_layers=cfg.feature_extractor.num_layers,
+            bidirectional=cfg.feature_extractor.bidirectional,
+            out_size=num_timesteps,
         )
     else:
         raise ValueError(f"Invalid feature extractor name: {cfg.feature_extractor.name}")
