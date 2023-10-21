@@ -47,10 +47,14 @@ class Cutmix:
         lam = np.random.beta(self.alpha, self.alpha)
         start, end = get_rand_1dbbox(imgs.size(2), lam)
 
-        imgs[:, :, start:end] = shuffled_imgs[:, :, start:end]
-        labels[:, start:end, :] = shuffled_labels[:, start:end, :]
+        mixed_imgs = torch.concatenate(
+            [imgs[:, :, :start], shuffled_imgs[:, :, start:end], imgs[:, :, end:]], dim=2
+        )
+        mixed_labels = torch.concatenate(
+            [labels[:, :start, :], shuffled_labels[:, start:end, :], labels[:, end:, :]], dim=1
+        )
 
-        return imgs, labels
+        return mixed_imgs, mixed_labels
 
 
 if __name__ == "__main__":
