@@ -6,10 +6,12 @@ from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
+from src.models.feature_extractor.panns import PANNsFeatureExtractor
 from src.models.spec2Dcnn import Spec2DCNN
 
 
 def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int) -> nn.Module:
+    feature_extractor: CNNSpectrogram | PANNsFeatureExtractor
     if cfg.feature_extractor.name == "CNNSpectrogram":
         feature_extractor = CNNSpectrogram(
             in_channels=feature_dim,
@@ -20,6 +22,18 @@ def get_feature_extractor(cfg: DictConfig, feature_dim: int, num_timesteps: int)
             output_size=num_timesteps,
             conv=nn.Conv1d,
             reinit=cfg.feature_extractor.reinit,
+        )
+    elif cfg.feature_extractor.name == "PANNsFeatureExtractor":
+        feature_extractor = PANNsFeatureExtractor(
+            in_channels=feature_dim,
+            base_filters=cfg.feature_extractor.base_filters,
+            kernel_sizes=cfg.feature_extractor.kernel_sizes,
+            stride=cfg.feature_extractor.stride,
+            sigmoid=cfg.feature_extractor.sigmoid,
+            output_size=num_timesteps,
+            conv=nn.Conv1d,
+            reinit=cfg.feature_extractor.reinit,
+            win_length=cfg.feature_extractor.win_length,
         )
     else:
         raise ValueError(f"Invalid feature extractor name: {cfg.feature_extractor.name}")
@@ -82,4 +96,5 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
     else:
         raise NotImplementedError
 
+    return model
     return model
