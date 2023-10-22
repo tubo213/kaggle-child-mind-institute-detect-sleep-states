@@ -22,12 +22,16 @@ class SpecNormalize(nn.Module):
 class SpecFeatureExtractor(nn.Module):
     def __init__(
         self,
-        n_fft: int,
+        in_channels: int,
+        height: int,
         hop_length: int,
         win_length: Optional[int] = None,
         out_size: Optional[int] = None,
     ):
         super().__init__()
+        self.height = height
+        self.out_chans = in_channels
+        n_fft = height * 2 - 1
         self.feature_extractor = nn.Sequential(
             T.Spectrogram(n_fft=n_fft, hop_length=hop_length, win_length=win_length),
             T.AmplitudeToDB(top_db=80),
