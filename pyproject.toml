@@ -50,7 +50,6 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = [
     "black>=23.7.0",
-    "flake8>=5.0.4",
     "isort>=5.12.0",
     "mypy>=1.4.1",
     "jupyter>=1.0.0",

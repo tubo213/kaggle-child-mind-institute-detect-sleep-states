@@ -8,11 +8,15 @@
   "[python]": {
     "editor.codeActionsOnSave": {
       // isortの並び替えをRuffで実行
-      "source.organizeImports": true
+      "source.organizeImports": true,
+      // blackのフォーマットをRuffで実行
+      "source.fixAll": true,
     },
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true
   },
+  // flake8を無効化
+  "python.linting.enabled": false,
   "ruff.path": [
     "${workspaceFolder}/.venv/bin/ruff"
   ],
@@ -23,7 +27,4 @@
     "${workspaceFolder}/.venv/bin/mypy"
   ],
   "files.autoSave": "afterDelay",
-  "flake8.args": [
-    "--max-line-length=99",
-  ]
 }
