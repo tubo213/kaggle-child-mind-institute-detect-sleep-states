@@ -43,9 +43,9 @@ bg_sampling_rate: 0.5
 
 # augmentation
 augmentation:
-  mixup_prob: 0.5
+  mixup_prob: 0.0
   mixup_alpha: 0.4
-  cutmix_prob: 0.5
+  cutmix_prob: 0.0
   cutmix_alpha: 0.4
   
 # post_process
