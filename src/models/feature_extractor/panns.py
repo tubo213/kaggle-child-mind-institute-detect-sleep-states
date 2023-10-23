@@ -31,9 +31,9 @@ class PANNsFeatureExtractor(nn.Module):
             conv=conv,
             reinit=reinit,
         )
-        n_fft = (self.cnn_feature_extractor.height - 1) * 2
         self.spec_feature_extractor = SpecFeatureExtractor(
-            n_fft=n_fft,
+            in_channels=in_channels,
+            height=self.cnn_feature_extractor.height,
             hop_length=stride,
             win_length=win_length,
             out_size=output_size,
