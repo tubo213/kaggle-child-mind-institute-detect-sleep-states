@@ -36,7 +36,7 @@ class SegModel(LightningModule):
         )
         self.duration = duration
         self.validation_step_outputs: list = []
-        self.best_score = 0
+        self.__best_loss = np.inf
 
     def forward(
         self, x: torch.Tensor, labels: Optional[torch.Tensor] = None
@@ -58,7 +58,7 @@ class SegModel(LightningModule):
             do_cutmix = False
 
         output = self.model(batch["feature"], batch["label"], do_mixup, do_cutmix)
-        loss = output["loss"]
+        loss: torch.Tensor = output["loss"]
         logits = output["logits"]  # (batch_size, n_timesteps, n_classes)
 
         if mode == "train":
@@ -86,6 +86,7 @@ class SegModel(LightningModule):
                     batch["key"],
                     resized_labels.numpy(),
                     resized_logits.numpy(),
+                    loss.detach().item(),
                 )
             )
             self.log(
@@ -105,6 +106,8 @@ class SegModel(LightningModule):
             keys.extend(x[0])
         labels = np.concatenate([x[1] for x in self.validation_step_outputs])
         preds = np.concatenate([x[2] for x in self.validation_step_outputs])
+        losses = np.array([x[3] for x in self.validation_step_outputs])
+        loss = losses.mean()
 
         val_pred_df = post_process_for_seg(
             keys=keys,
@@ -115,13 +118,14 @@ class SegModel(LightningModule):
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
 
-        if score > self.best_score:
-            self.best_score = score
+        if loss < self.__best_loss:
             np.save("keys.npy", np.array(keys))
             np.save("labels.npy", labels)
             np.save("preds.npy", preds)
             val_pred_df.write_csv("val_pred_df.csv")
             torch.save(self.model.state_dict(), "best_model.pth")
+            print(f"Saved best model {self.__best_loss} -> {loss}")
+            self.__best_loss = loss
 
         self.validation_step_outputs.clear()
 
