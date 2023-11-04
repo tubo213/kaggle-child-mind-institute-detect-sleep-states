@@ -71,7 +71,7 @@ rye run python run/train.py downsample_rate=2 duration=5760 exp_name=exp001 batc
 
 ## Upload Model
 ```bash
-rye run python run/tools.py upload_dataset.py
+rye run python tools/upload_dataset.py
 ```
 
 ## Inference
