@@ -34,6 +34,17 @@ rye sync
 . .venv/bin/activate
 ```
 
+### Set path
+Rewrite run/conf/dir/local.yaml to match your environment
+
+```yaml
+data_dir: 
+processed_dir: 
+output_dir: 
+model_dir: 
+sub_dir: ./
+```
+
 ## Prepare Data
 
 ### 1. Download data
