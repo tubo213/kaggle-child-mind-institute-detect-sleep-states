@@ -14,7 +14,7 @@ defaults:
   - dir: local
   - model: Spec2DCNN
   - feature_extractor: CNNSpectrogram
-  - decoder: UNet1dDecoder
+  - decoder: UNet1DDecoder
 
 exp_name: dummy
 phase: test
@@ -23,14 +23,19 @@ weight:
   run_name: single
 
 seed: 42
-duration: 4992 # durationは32の倍数
-downsample_rate: 4 # durationをdownsample_rateで割った値がnum_framesになる
+duration: 5760 # durationは32の倍数
+downsample_rate: 2 # durationをdownsample_rateで割った値がnum_framesになる
 upsample_rate: 1
 batch_size: 32
 num_workers: 2
 use_amp: true
 
-# Dataset
+# augmentation
+augmentation:
+  mixup_prob: 0.0
+  mixup_alpha: 0.4
+  cutmix_prob: 0.0
+  cutmix_alpha: 0.4
 
 # post_process
 post_process:
