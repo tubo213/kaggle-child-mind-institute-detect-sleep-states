@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 
 
+# ref: https://github.com/analokmaus/kaggle-g2net-public/tree/main/models1d_pytorch
 class CNNSpectrogram(nn.Module):
     def __init__(
         self,
