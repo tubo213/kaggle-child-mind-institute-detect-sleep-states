@@ -1,5 +1,7 @@
 # Child Mind Institute - Detect Sleep States
 
+This repository is for [Child Mind Institute - Detect Sleep States](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/overview)
+
 ## Build Environment
 ### 1. install [rye](https://github.com/mitsuhiko/rye)
 
