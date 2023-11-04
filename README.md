@@ -56,8 +56,13 @@ The following commands are for training the model of LB0.714
 rye run python run/train.py downsample_rate=2 duration=5760 exp_name=exp001 batch_size=32
 ```
 
+## Upload Model
+```bash
+rye run python run/tools.py upload_dataset.py
+```
+
 ## Inference
-The following commands are for inference of LB0.714
+The following commands are for inference of LB0.714 
 ```bash
 rye run python run/inference.py dir=kaggle exp_name=exp001 weight.run_name=single downsample_rate=2 duration=5760 model.encoder_weights=null post_process.score_th=0.005 post_process.distance=40 phase=test
 ```
