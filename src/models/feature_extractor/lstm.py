@@ -7,10 +7,10 @@ import torch.nn as nn
 class LSTMFeatureExtractor(nn.Module):
     def __init__(
         self,
-        in_channels,
-        hidden_size,
-        num_layers,
-        bidirectional,
+        in_channels: int,
+        hidden_size: int,
+        num_layers: int,
+        bidirectional: bool,
         out_size: Optional[int] = None,
     ):
         super().__init__()
