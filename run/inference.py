@@ -5,19 +5,19 @@ import numpy as np
 import polars as pl
 import torch
 import torch.nn as nn
-from omegaconf import DictConfig
 from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
 from torchvision.transforms.functional import resize
 from tqdm import tqdm
 
+from src.conf import InferenceConfig
 from src.datamodule.seg import TestDataset, load_chunk_features, nearest_valid_size
 from src.models.common import get_model
 from src.utils.common import trace
 from src.utils.post_process import post_process_for_seg
 
 
-def load_model(cfg: DictConfig) -> nn.Module:
+def load_model(cfg: InferenceConfig) -> nn.Module:
     num_timesteps = nearest_valid_size(int(cfg.duration * cfg.upsample_rate), cfg.downsample_rate)
     model = get_model(
         cfg,
@@ -29,17 +29,14 @@ def load_model(cfg: DictConfig) -> nn.Module:
     # load weights
     if cfg.weight is not None:
         weight_path = (
-            Path(cfg.dir.model_dir)
-            / cfg.weight["exp_name"]
-            / cfg.weight["run_name"]
-            / "best_model.pth"
+            Path(cfg.dir.model_dir) / cfg.weight.exp_name / cfg.weight.run_name / "best_model.pth"
         )
         model.load_state_dict(torch.load(weight_path))
         print('load weight from "{}"'.format(weight_path))
     return model
 
 
-def get_test_dataloader(cfg: DictConfig) -> DataLoader:
+def get_test_dataloader(cfg: InferenceConfig) -> DataLoader:
     """get test dataloader
 
     Args:
@@ -110,7 +107,7 @@ def make_submission(
 
 
 @hydra.main(config_path="conf", config_name="inference", version_base="1.2")
-def main(cfg: DictConfig):
+def main(cfg: InferenceConfig):
     seed_everything(cfg.seed)
 
     with trace("load test dataloader"):
@@ -127,8 +124,8 @@ def main(cfg: DictConfig):
             keys,
             preds,
             downsample_rate=cfg.downsample_rate,
-            score_th=cfg.post_process.score_th,
-            distance=cfg.post_process.distance,
+            score_th=cfg.pp.score_th,
+            distance=cfg.pp.distance,
         )
     sub_df.write_csv(Path(cfg.dir.sub_dir) / "submission.csv")
 

@@ -4,11 +4,11 @@ import numpy as np
 import polars as pl
 import torch
 import torch.optim as optim
-from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
 from torchvision.transforms.functional import resize
 from transformers import get_cosine_schedule_with_warmup
 
+from src.conf import TrainConfig
 from src.datamodule.seg import nearest_valid_size
 from src.models.common import get_model
 from src.utils.metrics import event_detection_ap
@@ -18,7 +18,7 @@ from src.utils.post_process import post_process_for_seg
 class SegModel(LightningModule):
     def __init__(
         self,
-        cfg: DictConfig,
+        cfg: TrainConfig,
         val_event_df: pl.DataFrame,
         feature_dim: int,
         num_classes: int,
@@ -51,8 +51,8 @@ class SegModel(LightningModule):
 
     def __share_step(self, batch, mode: str) -> torch.Tensor:
         if mode == "train":
-            do_mixup = np.random.rand() < self.cfg.augmentation.mixup_prob
-            do_cutmix = np.random.rand() < self.cfg.augmentation.cutmix_prob
+            do_mixup = np.random.rand() < self.cfg.aug.mixup_prob
+            do_cutmix = np.random.rand() < self.cfg.aug.cutmix_prob
         elif mode == "val":
             do_mixup = False
             do_cutmix = False
@@ -112,8 +112,8 @@ class SegModel(LightningModule):
         val_pred_df = post_process_for_seg(
             keys=keys,
             preds=preds[:, :, [1, 2]],
-            score_th=self.cfg.post_process.score_th,
-            distance=self.cfg.post_process.distance,
+            score_th=self.cfg.pp.score_th,
+            distance=self.cfg.pp.distance,
         )
         score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)

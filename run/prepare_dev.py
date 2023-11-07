@@ -2,11 +2,12 @@ from pathlib import Path
 
 import hydra
 import polars as pl
-from omegaconf import DictConfig
+
+from src.conf import PrepareDataConfig
 
 
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
-def main(cfg: DictConfig):
+def main(cfg: PrepareDataConfig):
     data_dir = Path(cfg.dir.data_dir)
     series_df = pl.scan_parquet(data_dir / "train_series.parquet")
     event_df = pl.scan_csv(data_dir / "train_events.csv")

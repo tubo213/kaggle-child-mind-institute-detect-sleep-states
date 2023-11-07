@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import torch
-from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import resize
 
+from src.conf import InferenceConfig, TrainConfig
 from src.utils.common import pad_if_needed
 
 
@@ -154,7 +154,7 @@ def nearest_valid_size(input_size: int, downsample_rate: int) -> int:
 class TrainDataset(Dataset):
     def __init__(
         self,
-        cfg: DictConfig,
+        cfg: TrainConfig,
         event_df: pl.DataFrame,
         features: dict[str, np.ndarray],
     ):
@@ -184,7 +184,7 @@ class TrainDataset(Dataset):
         n_steps = this_feature.shape[0]
 
         # sample background
-        if random.random() < self.cfg.bg_sampling_rate:
+        if random.random() < self.cfg.dataset.bg_sampling_rate:
             pos = negative_sampling(this_event_df, n_steps)
 
         # crop
@@ -203,7 +203,7 @@ class TrainDataset(Dataset):
         num_frames = self.upsampled_num_frames // self.cfg.downsample_rate
         label = get_label(this_event_df, num_frames, self.cfg.duration, start, end)
         label[:, [1, 2]] = gaussian_label(
-            label[:, [1, 2]], offset=self.cfg.offset, sigma=self.cfg.sigma
+            label[:, [1, 2]], offset=self.cfg.dataset.offset, sigma=self.cfg.dataset.sigma
         )
 
         return {
@@ -216,7 +216,7 @@ class TrainDataset(Dataset):
 class ValidDataset(Dataset):
     def __init__(
         self,
-        cfg: DictConfig,
+        cfg: TrainConfig,
         chunk_features: dict[str, np.ndarray],
         event_df: pl.DataFrame,
     ):
@@ -268,7 +268,7 @@ class ValidDataset(Dataset):
 class TestDataset(Dataset):
     def __init__(
         self,
-        cfg: DictConfig,
+        cfg: InferenceConfig,
         chunk_features: dict[str, np.ndarray],
     ):
         self.cfg = cfg
@@ -302,7 +302,7 @@ class TestDataset(Dataset):
 # DataModule
 ###################
 class SegDataModule(LightningDataModule):
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: TrainConfig):
         super().__init__()
         self.cfg = cfg
         self.data_dir = Path(cfg.dir.data_dir)
@@ -337,11 +337,11 @@ class SegDataModule(LightningDataModule):
             event_df=self.train_event_df,
             features=self.train_features,
         )
-        train_loader = torch.utils.data.DataLoader(
+        train_loader = DataLoader(
             train_dataset,
-            batch_size=self.cfg.batch_size,
+            batch_size=self.cfg.dataset.batch_size,
             shuffle=True,
-            num_workers=self.cfg.num_workers,
+            num_workers=self.cfg.dataset.num_workers,
             pin_memory=True,
             drop_last=True,
         )
@@ -353,11 +353,11 @@ class SegDataModule(LightningDataModule):
             chunk_features=self.valid_chunk_features,
             event_df=self.valid_event_df,
         )
-        valid_loader = torch.utils.data.DataLoader(
+        valid_loader = DataLoader(
             valid_dataset,
-            batch_size=self.cfg.batch_size,
+            batch_size=self.cfg.dataset.batch_size,
             shuffle=False,
-            num_workers=self.cfg.num_workers,
+            num_workers=self.cfg.dataset.num_workers,
             pin_memory=True,
         )
         return valid_loader

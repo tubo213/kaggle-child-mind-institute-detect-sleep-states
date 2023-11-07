@@ -4,9 +4,9 @@ from pathlib import Path
 import hydra
 import numpy as np
 import polars as pl
-from omegaconf import DictConfig
 from tqdm import tqdm
 
+from src.conf import PrepareDataConfig
 from src.utils.common import trace
 
 SERIES_SCHEMA = {
@@ -50,7 +50,7 @@ def add_feature(series_df: pl.DataFrame) -> pl.DataFrame:
             *to_coord(pl.col("timestamp").dt.hour(), 24, "hour"),
             *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
             *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
-            pl.col('step') / pl.count('step')
+            pl.col("step") / pl.count("step"),
         )
         .select("series_id", *FEATURE_NAMES)
     )
@@ -66,7 +66,7 @@ def save_each_series(this_series_df: pl.DataFrame, columns: list[str], output_di
 
 
 @hydra.main(config_path="conf", config_name="prepare_data", version_base="1.2")
-def main(cfg: DictConfig):
+def main(cfg: PrepareDataConfig):
     processed_dir: Path = Path(cfg.dir.processed_dir) / cfg.phase
 
     # ディレクトリが存在する場合は削除
