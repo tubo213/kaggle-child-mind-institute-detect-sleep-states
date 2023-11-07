@@ -69,6 +69,8 @@ features:
   - "hour_cos"
   # - "minute_sin"
   # - "minute_cos"
+  # - "anglez_sin"
+  # - "anglez_cos"
 
 # optimizer
 optimizer:

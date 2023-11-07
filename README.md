@@ -66,7 +66,7 @@ rye run python -m run/prepare_data.py phase=train,test
 ## Train Model
 The following commands are for training the model of LB0.714
 ```bash
-rye run python run/train.py downsample_rate=2 duration=5760 exp_name=exp001 batch_size=32
+rye run python run/train.py downsample_rate=2 duration=5760 exp_name=exp001 dataset.batch_size=32
 ```
 
 You can easily perform experiments by changing the parameters because [hydra](https://hydra.cc/docs/intro/) is used.
