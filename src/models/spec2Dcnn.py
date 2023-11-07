@@ -55,7 +55,7 @@ class Spec2DCNN(nn.Module):
             x, labels = self.cutmix(x, labels)
 
         x = self.encoder(x).squeeze(1)  # (batch_size, height, n_timesteps)
-        logits = self.decoder(x)  # (batch_size, n_classes, n_timesteps)
+        logits = self.decoder(x)  # (batch_size, n_timesteps, n_classes)
 
         output = {"logits": logits}
         if labels is not None:
