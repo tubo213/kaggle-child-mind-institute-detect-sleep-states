@@ -31,14 +31,14 @@ num_workers: 2
 use_amp: true
 
 # augmentation
-augmentation:
+aug:
   mixup_prob: 0.0
   mixup_alpha: 0.4
   cutmix_prob: 0.0
   cutmix_alpha: 0.4
 
 # post_process
-post_process:
+pp:
   score_th: 0.02
   distance: 10
 

@@ -23,33 +23,32 @@ duration: 5760 # duration * 5 = 秒数
 downsample_rate: 2
 upsample_rate: 1
 
-# training
-epoch: 50
-batch_size: 64
-num_workers: 24
-accelerator: auto
-use_amp: true
-debug: false
-gradient_clip_val: 1.0
-accumulate_grad_batches: 1
-monitor: val_loss
-monitor_mode: min
-check_val_every_n_epoch: 1
+trainer:
+  epochs: 50
+  accelerator: auto
+  use_amp: true
+  debug: false
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 1
+  monitor: val_loss
+  monitor_mode: min
+  check_val_every_n_epoch: 1
 
-# Dataset
-offset: 10
-sigma: 10
-bg_sampling_rate: 0.5
+dataset:
+  batch_size: 64
+  num_workers: 24
+  offset: 10
+  sigma: 10
+  bg_sampling_rate: 0.5
 
-# augmentation
-augmentation:
+aug:
   mixup_prob: 0.0
   mixup_alpha: 0.4
   cutmix_prob: 0.0
   cutmix_alpha: 0.4
   
 # post_process
-post_process:
+pp:
   score_th: 0.02
   distance: 10
 
