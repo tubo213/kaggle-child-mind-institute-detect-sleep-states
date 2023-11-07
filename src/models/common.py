@@ -79,7 +79,11 @@ def get_decoder(
 
 
 def get_model(
-    cfg: TrainConfig | InferenceConfig, feature_dim: int, n_classes: int, num_timesteps: int
+    cfg: TrainConfig | InferenceConfig,
+    feature_dim: int,
+    n_classes: int,
+    num_timesteps: int,
+    test: bool = False,
 ) -> MODEL_TYPE:
     model: MODEL_TYPE
     if cfg.model.name == "Spec2DCNN":
@@ -93,7 +97,8 @@ def get_model(
             in_channels=feature_extractor.out_chans,
             mixup_alpha=cfg.aug.mixup_alpha,
             cutmix_alpha=cfg.aug.cutmix_alpha,
-            **cfg.model.params,
+            encoder_weights=cfg.model.params["encoder_weights"] if not test else None,
+            encoder_name=cfg.model.params["encoder_name"],
         )
     elif cfg.model.name == "Spec1D":
         feature_extractor = get_feature_extractor(

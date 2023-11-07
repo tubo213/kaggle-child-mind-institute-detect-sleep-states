@@ -24,6 +24,7 @@ def load_model(cfg: InferenceConfig) -> nn.Module:
         feature_dim=len(cfg.features),
         n_classes=len(cfg.labels),
         num_timesteps=num_timesteps // cfg.downsample_rate,
+        test=True,
     )
 
     # load weights
