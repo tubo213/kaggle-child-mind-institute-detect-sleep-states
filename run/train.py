@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(Path(__file__).name)
 
 
 @hydra.main(config_path="conf", config_name="train", version_base="1.2")
-def main(cfg: TrainConfig):  # type: ignore
+def main(cfg: TrainConfig):
     seed_everything(cfg.seed)
 
     # init lightning model
