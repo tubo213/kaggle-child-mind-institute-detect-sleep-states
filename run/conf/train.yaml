@@ -63,6 +63,7 @@ labels:
 features:
   - "anglez"
   - "enmo"
+  # - "step"
   # - "month_sin"
   # - "month_cos"
   - "hour_sin"
