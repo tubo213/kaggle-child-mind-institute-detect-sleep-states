@@ -50,6 +50,7 @@ def main(cfg: DictConfig):  # type: ignore
         name=cfg.exp_name,
         project="child-mind-institute-detect-sleep-states",
     )
+    pl_logger.log_hyperparams(cfg)
 
     trainer = Trainer(
         # env
