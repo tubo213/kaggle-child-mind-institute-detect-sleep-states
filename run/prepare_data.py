@@ -27,6 +27,8 @@ FEATURE_NAMES = [
     "month_cos",
     "minute_sin",
     "minute_cos",
+    "anglez_sin",
+    "anglez_cos",
 ]
 
 ANGLEZ_MEAN = -8.810476
@@ -43,6 +45,10 @@ def to_coord(x: pl.Expr, max_: int, name: str) -> list[pl.Expr]:
     return [x_sin.alias(f"{name}_sin"), x_cos.alias(f"{name}_cos")]
 
 
+def deg_to_rad(x: pl.Expr) -> pl.Expr:
+    return np.pi / 180 * x
+
+
 def add_feature(series_df: pl.DataFrame) -> pl.DataFrame:
     series_df = (
         series_df.with_row_count("step")
@@ -51,6 +57,8 @@ def add_feature(series_df: pl.DataFrame) -> pl.DataFrame:
             *to_coord(pl.col("timestamp").dt.month(), 12, "month"),
             *to_coord(pl.col("timestamp").dt.minute(), 60, "minute"),
             pl.col("step") / pl.count("step"),
+            pl.col('anglez_rad').sin().alias('anglez_sin'),
+            pl.col('anglez_rad').cos().alias('anglez_cos'),
         )
         .select("series_id", *FEATURE_NAMES)
     )
@@ -93,6 +101,7 @@ def main(cfg: PrepareDataConfig):
         series_df = (
             series_lf.with_columns(
                 pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S%z"),
+                deg_to_rad(pl.col("anglez")).alias("anglez_rad"),
                 (pl.col("anglez") - ANGLEZ_MEAN) / ANGLEZ_STD,
                 (pl.col("enmo") - ENMO_MEAN) / ENMO_STD,
             )
@@ -102,6 +111,7 @@ def main(cfg: PrepareDataConfig):
                     pl.col("anglez"),
                     pl.col("enmo"),
                     pl.col("timestamp"),
+                    pl.col("anglez_rad"),
                 ]
             )
             .collect(streaming=True)

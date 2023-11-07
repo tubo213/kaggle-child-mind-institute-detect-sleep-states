@@ -60,7 +60,7 @@ labels:
 
 # feature
 features:
-  # - "anglez"
+  - "anglez"
   - "enmo"
   # - "step"
   # - "month_sin"
@@ -69,8 +69,8 @@ features:
   - "hour_cos"
   # - "minute_sin"
   # - "minute_cos"
-  - "anglez_sin"
-  - "anglez_cos"
+  # - "anglez_sin"
+  # - "anglez_cos"
 
 # optimizer
 optimizer:
