@@ -3,6 +3,7 @@ from typing import Union
 import torch.nn as nn
 
 from src.conf import DecoderConfig, FeatureExtractorConfig, InferenceConfig, TrainConfig
+from src.models.base import BaseModel
 from src.models.decoder.lstmdecoder import LSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
@@ -18,7 +19,6 @@ FEATURE_EXTRACTOR_TYPE = Union[
     CNNSpectrogram, PANNsFeatureExtractor, LSTMFeatureExtractor, SpecFeatureExtractor
 ]
 DECODER_TYPE = Union[UNet1DDecoder, LSTMDecoder, TransformerDecoder, MLPDecoder]
-MODEL_TYPE = Union[Spec1D, Spec2DCNN]
 
 
 def get_feature_extractor(
@@ -84,8 +84,8 @@ def get_model(
     n_classes: int,
     num_timesteps: int,
     test: bool = False,
-) -> MODEL_TYPE:
-    model: MODEL_TYPE
+) -> BaseModel:
+    model: BaseModel
     if cfg.model.name == "Spec2DCNN":
         feature_extractor = get_feature_extractor(
             cfg.feature_extractor, feature_dim, num_timesteps
