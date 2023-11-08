@@ -13,8 +13,8 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.loggers import WandbLogger
 
 from src.conf import TrainConfig
-from src.datamodule.seg import SegDataModule
-from src.modelmodule.seg import SegModel
+from src.datamodule import SleepDataModule
+from src.modelmodule import PLSleepModel
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s:%(name)s - %(message)s"
@@ -27,9 +27,9 @@ def main(cfg: TrainConfig):
     seed_everything(cfg.seed)
 
     # init lightning model
-    datamodule = SegDataModule(cfg)
+    datamodule = SleepDataModule(cfg)
     LOGGER.info("Set Up DataModule")
-    model = SegModel(
+    model = PLSleepModel(
         cfg, datamodule.valid_event_df, len(cfg.features), len(cfg.labels), cfg.duration
     )
 

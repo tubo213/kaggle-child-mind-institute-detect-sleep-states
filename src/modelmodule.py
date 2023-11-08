@@ -5,17 +5,17 @@ import polars as pl
 import torch
 import torch.optim as optim
 from pytorch_lightning import LightningModule
-from torchvision.transforms.functional import resize
 from transformers import get_cosine_schedule_with_warmup
 
 from src.conf import TrainConfig
-from src.datamodule.seg import nearest_valid_size
+from src.models.base import ModelOutput
 from src.models.common import get_model
+from src.utils.common import nearest_valid_size
 from src.utils.metrics import event_detection_ap
 from src.utils.post_process import post_process_for_seg
 
 
-class SegModel(LightningModule):
+class PLSleepModel(LightningModule):
     def __init__(
         self,
         cfg: TrainConfig,
@@ -39,66 +39,49 @@ class SegModel(LightningModule):
         self.__best_loss = np.inf
 
     def forward(
-        self, x: torch.Tensor, labels: Optional[torch.Tensor] = None
-    ) -> dict[str, Optional[torch.Tensor]]:
-        return self.model(x, labels)
+        self,
+        x: torch.Tensor,
+        labels: Optional[torch.Tensor] = None,
+        do_mixup: bool = False,
+        do_cutmix: bool = False,
+    ) -> ModelOutput:
+        return self.model(x, labels, do_mixup, do_cutmix)
 
     def training_step(self, batch, batch_idx):
-        return self.__share_step(batch, "train")
+        do_mixup = np.random.rand() < self.cfg.aug.mixup_prob
+        do_cutmix = np.random.rand() < self.cfg.aug.cutmix_prob
+        output = self.model(batch["feature"], batch["label"], do_mixup, do_cutmix)
+
+        self.log(
+            "train_loss",
+            output.loss.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            logger=True,
+            prog_bar=True,
+        )
+        return output.loss
 
     def validation_step(self, batch, batch_idx):
-        return self.__share_step(batch, "val")
+        output = self.model.predict(batch["feature"], self.duration, batch["label"])
+        self.validation_step_outputs.append(
+            (
+                batch["key"],
+                output.labels.detach().cpu().numpy(),
+                output.preds.detach().cpu().numpy(),
+                output.loss.detach().item(),
+            )
+        )
+        self.log(
+            "val_loss",
+            output.loss.detach().item(),
+            on_step=False,
+            on_epoch=True,
+            logger=True,
+            prog_bar=True,
+        )
 
-    def __share_step(self, batch, mode: str) -> torch.Tensor:
-        if mode == "train":
-            do_mixup = np.random.rand() < self.cfg.aug.mixup_prob
-            do_cutmix = np.random.rand() < self.cfg.aug.cutmix_prob
-        elif mode == "val":
-            do_mixup = False
-            do_cutmix = False
-
-        output = self.model(batch["feature"], batch["label"], do_mixup, do_cutmix)
-        loss: torch.Tensor = output["loss"]
-        logits = output["logits"]  # (batch_size, n_timesteps, n_classes)
-
-        if mode == "train":
-            self.log(
-                f"{mode}_loss",
-                loss.detach().item(),
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-            )
-        elif mode == "val":
-            resized_logits = resize(
-                logits.sigmoid().detach().cpu(),
-                size=[self.duration, logits.shape[2]],
-                antialias=False,
-            )
-            resized_labels = resize(
-                batch["label"].detach().cpu(),
-                size=[self.duration, logits.shape[2]],
-                antialias=False,
-            )
-            self.validation_step_outputs.append(
-                (
-                    batch["key"],
-                    resized_labels.numpy(),
-                    resized_logits.numpy(),
-                    loss.detach().item(),
-                )
-            )
-            self.log(
-                f"{mode}_loss",
-                loss.detach().item(),
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-            )
-
-        return loss
+        return output.loss
 
     def on_validation_epoch_end(self):
         keys = []

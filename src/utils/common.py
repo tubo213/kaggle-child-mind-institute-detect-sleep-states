@@ -1,10 +1,12 @@
 import math
 import os
+import random
 import sys
 import time
 from contextlib import contextmanager
 
 import numpy as np
+import pandas as pd
 import psutil
 
 
@@ -28,3 +30,41 @@ def pad_if_needed(x: np.ndarray, max_len: int, pad_value: float = 0.0) -> np.nda
     n_dim = len(x.shape)
     pad_widths = [(0, num_pad)] + [(0, 0) for _ in range(n_dim - 1)]
     return np.pad(x, pad_width=pad_widths, mode="constant", constant_values=pad_value)
+
+
+def nearest_valid_size(input_size: int, downsample_rate: int) -> int:
+    """
+    (x // hop_length) % 32 == 0
+    を満たすinput_sizeに最も近いxを返す
+    """
+
+    while (input_size // downsample_rate) % 32 != 0:
+        input_size += 1
+    assert (input_size // downsample_rate) % 32 == 0
+
+    return input_size
+
+
+def random_crop(pos: int, duration: int, max_end) -> tuple[int, int]:
+    """Randomly crops with duration length including pos.
+    However, 0<=start, end<=max_end
+    """
+    start = random.randint(max(0, pos - duration), min(pos, max_end - duration))
+    end = start + duration
+    return start, end
+
+
+def negative_sampling(this_event_df: pd.DataFrame, num_steps: int) -> int:
+    """negative sampling
+
+    Args:
+        this_event_df (pd.DataFrame): event df
+        num_steps (int): number of steps in this series
+
+    Returns:
+        int: negative sample position
+    """
+    # onsetとwakupを除いた範囲からランダムにサンプリング
+    positive_positions = set(this_event_df[["onset", "wakeup"]].to_numpy().flatten().tolist())
+    negative_positions = list(set(range(num_steps)) - positive_positions)
+    return random.sample(negative_positions, 1)[0]
