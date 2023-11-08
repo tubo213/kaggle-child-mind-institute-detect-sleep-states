@@ -51,6 +51,7 @@ class TrainerConfig:
 
 @dataclass
 class DatasetConfig:
+    name: str
     batch_size: int
     num_workers: int
     offset: int
@@ -98,6 +99,8 @@ class PrepareDataConfig:
 class TrainConfig:
     exp_name: str
     seed: int
+    batch_size: int
+    num_workers: int
     duration: int
     downsample_rate: int
     upsample_rate: int
@@ -134,5 +137,6 @@ class InferenceConfig:
     feature_extractor: FeatureExtractorConfig
     decoder: DecoderConfig
     weight: WeightConfig
+    dataset: DatasetConfig
     aug: AugmentationConfig
     pp: PostProcessConfig
