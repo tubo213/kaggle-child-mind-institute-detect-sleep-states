@@ -1,0 +1,6 @@
+name: detr
+batch_size: ${batch_size}
+num_workers: ${num_workers}
+offset: 10
+sigma: 10
+bg_sampling_rate: 0.5
