@@ -15,6 +15,9 @@ class ModelOutput:
 
 
 class BaseModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+
     def forward(
         self,
         x: torch.Tensor,
@@ -36,11 +39,11 @@ class BaseModel(nn.Module):
         if labels is not None:
             logits, labels = self._forward(x, labels, do_mixup, do_cutmix)
             loss = self.loss_fn(logits, labels)
-            return ModelOutput(logits, loss)
+            return ModelOutput(logits=logits, loss=loss, labels=labels)
         else:
             logits = self._forward(x, labels=None, do_mixup=False, do_cutmix=False)
             if isinstance(logits, torch.Tensor):
-                return ModelOutput(logits)
+                return ModelOutput(logits=logits)
             else:
                 raise ValueError("logits must be a torch.Tensor")
 
