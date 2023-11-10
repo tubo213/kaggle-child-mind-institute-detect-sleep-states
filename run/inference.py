@@ -96,11 +96,11 @@ def inference(
 
 
 def make_submission(
-    keys: list[str], preds: np.ndarray, downsample_rate, score_th, distance
+    keys: list[str], preds: np.ndarray, score_th, distance
 ) -> pl.DataFrame:
     sub_df = post_process_for_seg(
         keys,
-        preds[:, :, [1, 2]],  # type: ignore
+        preds,  # type: ignore
         score_th=score_th,
         distance=distance,  # type: ignore
     )
@@ -125,7 +125,6 @@ def main(cfg: InferenceConfig):
         sub_df = make_submission(
             keys,
             preds,
-            downsample_rate=cfg.downsample_rate,
             score_th=cfg.pp.score_th,
             distance=cfg.pp.distance,
         )
