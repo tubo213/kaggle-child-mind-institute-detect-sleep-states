@@ -37,14 +37,6 @@ trainer:
   monitor_mode: min
   check_val_every_n_epoch: 1
 
-dataset:
-  name: seg
-  batch_size: 64
-  num_workers: 24
-  offset: 10
-  sigma: 10
-  bg_sampling_rate: 0.5
-
 aug:
   mixup_prob: 0.0
   mixup_alpha: 0.4
