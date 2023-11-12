@@ -60,7 +60,7 @@ unzip child-mind-institute-detect-sleep-states.zip
 ### 2. Preprocess data
 
 ```bash
-rye run python -m run/prepare_data.py phase=train,test
+rye run python run/prepare_data.py -m phase=train,test
 ```
 
 ## Train Model
@@ -73,7 +73,7 @@ You can easily perform experiments by changing the parameters because [hydra](ht
 The following commands perform experiments with downsample_rate of 2, 4, 6, and 8.
 
 ```bash
-rye run python -m run/train.py downsample_rate=2,4,6,8
+rye run python run/train.py -m downsample_rate=2,4,6,8
 ```
 
 
