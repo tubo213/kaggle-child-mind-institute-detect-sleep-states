@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import resize
 
 from src.conf import InferenceConfig, TrainConfig
-from src.utils.common import nearest_valid_size, negative_sampling, random_crop
+from src.utils.common import gaussian_label, nearest_valid_size, negative_sampling, random_crop
 
 
 ###################
@@ -33,22 +33,6 @@ def get_seg_label(
         onset = max(0, onset)
         wakeup = min(num_frames, wakeup)
         label[onset:wakeup, 0] = 1  # sleep
-
-    return label
-
-
-# ref: https://www.kaggle.com/competitions/dfl-bundesliga-data-shootout/discussion/360236#2004730
-def gaussian_kernel(length: int, sigma: int = 3) -> np.ndarray:
-    x = np.ogrid[-length : length + 1]
-    h = np.exp(-(x**2) / (2 * sigma * sigma))  # type: ignore
-    h[h < np.finfo(h.dtype).eps * h.max()] = 0
-    return h
-
-
-def gaussian_label(label: np.ndarray, offset: int, sigma: int) -> np.ndarray:
-    num_events = label.shape[1]
-    for i in range(num_events):
-        label[:, i] = np.convolve(label[:, i], gaussian_kernel(offset, sigma), mode="same")
 
     return label
 
