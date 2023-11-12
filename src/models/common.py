@@ -93,14 +93,15 @@ def get_model(
             cfg.feature_extractor, feature_dim, num_timesteps
         )
         decoder = get_decoder(cfg.decoder, feature_extractor.height, n_classes, num_timesteps)
+        if test:
+            cfg.model.params["encoder_weights"] = None
         model = Spec2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
             in_channels=feature_extractor.out_chans,
             mixup_alpha=cfg.aug.mixup_alpha,
             cutmix_alpha=cfg.aug.cutmix_alpha,
-            encoder_weights=cfg.model.params["encoder_weights"] if not test else None,
-            encoder_name=cfg.model.params["encoder_name"],
+            **cfg.model.params,
         )
     elif cfg.model.name == "Spec1D":
         feature_extractor = get_feature_extractor(
@@ -120,33 +121,30 @@ def get_model(
         decoder = get_decoder(
             cfg.decoder, feature_extractor.height, cfg.model.params["hidden_dim"], num_timesteps
         )
+        if test:
+            cfg.model.params["encoder_weights"] = None
         model = DETR2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
             in_channels=feature_extractor.out_chans,
             mixup_alpha=cfg.aug.mixup_alpha,
             cutmix_alpha=cfg.aug.cutmix_alpha,
-            encoder_weights=cfg.model.params["encoder_weights"] if not test else None,
-            encoder_name=cfg.model.params["encoder_name"],
-            max_det=cfg.model.params["max_det"],
-            hidden_dim=cfg.model.params["hidden_dim"],
-            nheads=cfg.model.params["nheads"],
-            num_encoder_layers=cfg.model.params["num_encoder_layers"],
-            num_decoder_layers=cfg.model.params["num_decoder_layers"],
+            **cfg.model.params,
         )
     elif cfg.model.name == "CenterNet":
         feature_extractor = get_feature_extractor(
             cfg.feature_extractor, feature_dim, num_timesteps
         )
         decoder = get_decoder(cfg.decoder, feature_extractor.height, 6, num_timesteps)
+        if test:
+            cfg.model.params["encoder_weights"] = None
         model = CenterNet(
             feature_extractor=feature_extractor,
             decoder=decoder,
             in_channels=feature_extractor.out_chans,
             mixup_alpha=cfg.aug.mixup_alpha,
             cutmix_alpha=cfg.aug.cutmix_alpha,
-            encoder_weights=cfg.model.params["encoder_weights"] if not test else None,
-            encoder_name=cfg.model.params["encoder_name"],
+            **cfg.model.params,
         )
     else:
         raise ValueError(f"Invalid model name: {cfg.model.name}")

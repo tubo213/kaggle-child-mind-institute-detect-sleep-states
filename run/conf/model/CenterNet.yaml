@@ -2,3 +2,6 @@ name: CenterNet
 params:
   encoder_name: resnet34
   encoder_weights: imagenet
+  keypoint_weight: 1.0
+  offset_weight: 1.0
+  bbox_size_weight: 1.0

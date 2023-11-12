@@ -81,6 +81,9 @@ class CenterNet(BaseModel):
         encoder_name: str,
         in_channels: int,
         encoder_weights: Optional[str] = None,
+        keypoint_weight: float = 1.0,
+        offset_weight: float = 1.0,
+        bbox_size_weight: float = 1.0,
         mixup_alpha: float = 0.5,
         cutmix_alpha: float = 0.5,
     ):
@@ -95,7 +98,11 @@ class CenterNet(BaseModel):
         self.decoder = decoder
         self.mixup = Mixup(mixup_alpha)
         self.cutmix = Cutmix(cutmix_alpha)
-        self.loss_fn = CenterNetLoss()
+        self.loss_fn = CenterNetLoss(
+            keypoint_weight=keypoint_weight,
+            offset_weight=offset_weight,
+            bbox_size_weight=bbox_size_weight,
+        )
 
     def _forward(
         self,
