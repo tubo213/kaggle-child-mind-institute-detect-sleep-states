@@ -44,23 +44,30 @@ class CenterNetLoss(nn.Module):
         Returns:
             torch.Tensor: loss
         """
-
-        num_obj = labels[:, :, [0]].flatten(0, 1).nonzero().shape[0]
+        labels = labels.flatten(0, 1)  # (batch_size * n_time_steps, 6)
+        logits = logits.flatten(0, 1)  # (batch_size * n_time_steps, 6)
+        nonzero_idx_onset = labels[:, 4].nonzero().squeeze() # (num_obj)
+        nonzero_idx_wakeup = labels[:, 5].nonzero().squeeze() # (num_obj)
+        nonzero_idx = torch.cat([nonzero_idx_onset, nonzero_idx_wakeup], dim=0)
+        num_obj = nonzero_idx.shape[0]
         if num_obj == 0:
-            return self.bce(logits[:, :, :2], labels[:, :, :2])
-        # keypoint loss
-        keypoint_loss = self.bce(logits[:, :, :2], labels[:, :, :2]) / num_obj
-        # offset loss
-        offset_loss = self.l1(logits[:, :, 2:4], labels[:, :, 2:4]) / num_obj
-        # bbox size loss
-        bbox_size_loss = self.l1(logits[:, :, 4:], labels[:, :, 4:]) / num_obj
+            return self.bce(logits[:, :2], labels[:, :2]) * 0
+        else:
+            # keypoint loss
+            keypoint_loss = self.bce(logits[:, :2], labels[:, :2]) / num_obj
+            logits = logits[nonzero_idx] # (num_obj, 6)
+            labels = labels[nonzero_idx] # (num_obj, 6)
+            # offset loss
+            offset_loss = self.l1(logits[:, 2:4], labels[:, 2:4]) / num_obj
+            # bbox size loss
+            bbox_size_loss = self.l1(logits[:, 4:], labels[:, 4:]) / num_obj
 
-        total_loss = (
-            self.keypoint_weight * keypoint_loss
-            + self.offset_weight * offset_loss
-            + self.bbox_size_weight * bbox_size_loss
-        )
-        return total_loss
+            total_loss = (
+                self.keypoint_weight * keypoint_loss
+                + self.offset_weight * offset_loss
+                + self.bbox_size_weight * bbox_size_loss
+            )
+            return total_loss
 
 
 class CenterNet(BaseModel):
