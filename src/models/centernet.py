@@ -179,7 +179,7 @@ class CenterNet(BaseModel):
         return resize(labels, size=[org_duration, labels.shape[-1]], antialias=False)[:, :, [0, 1]]
 
 
-def np_groupby_max(groups, data):
+def np_groupby_max(groups: np.ndarray, data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     order = np.lexsort((data, groups))
     groups = groups[order]  # this is only needed if groups is unsorted
     data = data[order]
