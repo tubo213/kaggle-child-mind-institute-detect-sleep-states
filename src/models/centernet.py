@@ -46,13 +46,13 @@ class CenterNetLoss(nn.Module):
         """
         labels = labels.flatten(0, 1)  # (batch_size * n_time_steps, 6)
         logits = logits.flatten(0, 1)  # (batch_size * n_time_steps, 6)
-        nonzero_idx_onset = labels[:, 4].nonzero().squeeze() # (num_obj)
-        nonzero_idx_wakeup = labels[:, 5].nonzero().squeeze() # (num_obj)
-        nonzero_idx = torch.cat([nonzero_idx_onset, nonzero_idx_wakeup], dim=0)
-        num_obj = nonzero_idx.shape[0]
+        nonzero_idx_onset = labels[:, 4].nonzero().view(-1)
+        nonzero_idx_wakeup = labels[:, 5].nonzero().view(-1)
+        num_obj = nonzero_idx_onset.numel() + nonzero_idx_wakeup.numel()
         if num_obj == 0:
             return self.bce(logits[:, :2], labels[:, :2]) * 0
         else:
+            nonzero_idx = torch.cat([nonzero_idx_onset, nonzero_idx_wakeup], dim=0)
             # keypoint loss
             keypoint_loss = self.bce(logits[:, :2], labels[:, :2]) / num_obj
             logits = logits[nonzero_idx] # (num_obj, 6)
