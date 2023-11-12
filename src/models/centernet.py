@@ -46,6 +46,8 @@ class CenterNetLoss(nn.Module):
         """
 
         num_obj = labels[:, :, [0]].flatten(0, 1).nonzero().shape[0]
+        if num_obj == 0:
+            return self.bce(logits[:, :, :2], labels[:, :, :2])
         # keypoint loss
         keypoint_loss = self.bce(logits[:, :, :2], labels[:, :, :2]) / num_obj
         # offset loss
