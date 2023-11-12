@@ -23,8 +23,8 @@ class CenterNetLoss(nn.Module):
         self.keypoint_weight = keypoint_weight
         self.offset_weight = offset_weight
         self.bbox_size_weight = bbox_size_weight
-        self.bce = nn.BCEWithLogitsLoss()
-        self.l1 = nn.L1Loss()
+        self.bce = nn.BCEWithLogitsLoss(reduction="sum")
+        self.l1 = nn.L1Loss(reduction="sum")
 
     def forward(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         """Forward function.
@@ -42,7 +42,7 @@ class CenterNetLoss(nn.Module):
                 6: (onset, wakeup, onset_offset, wakeup_offset, onset_bbox_size, wakeup_bbox_size)
 
         Returns:
-            torch.Tensor: total loss
+            torch.Tensor: loss
         """
         labels = labels.flatten(0, 1)  # (batch_size * n_time_steps, 6)
         logits = logits.flatten(0, 1)  # (batch_size * n_time_steps, 6)
@@ -51,21 +51,20 @@ class CenterNetLoss(nn.Module):
         nonzero_idx_onset = labels[:, 4].nonzero().view(-1)
         nonzero_idx_wakeup = labels[:, 5].nonzero().view(-1)
         num_obj = nonzero_idx_onset.numel() + nonzero_idx_wakeup.numel()
-
-        # keypoint loss
-        keypoint_loss = self.bce(logits[:, :2], labels[:, :2])
         if num_obj == 0:
-            # if there is no object, offset loss and bbox size loss are not calculated
-            return self.keypoint_weight * keypoint_loss
+            return self.bce(logits[:, :2], labels[:, :2]) * 0.0
         else:
-            # if ther is at least one object, offset loss and bbox size loss are calculated
+            # keypoint loss
+            keypoint_loss = self.bce(logits[:, :2], labels[:, :2]) / num_obj
+
+            # other losses
             nonzero_idx = torch.cat([nonzero_idx_onset, nonzero_idx_wakeup], dim=0)
-            logits = logits[nonzero_idx] # (num_obj, 6)
-            labels = labels[nonzero_idx] # (num_obj, 6)
+            logits = logits[nonzero_idx]  # (num_obj, 6)
+            labels = labels[nonzero_idx]  # (num_obj, 6)
             # offset loss
-            offset_loss = self.l1(logits[:, 2:4], labels[:, 2:4])
+            offset_loss = self.l1(logits[:, 2:4], labels[:, 2:4]) / num_obj
             # bbox size loss
-            bbox_size_loss = self.l1(logits[:, 4:], labels[:, 4:])
+            bbox_size_loss = self.l1(logits[:, 4:], labels[:, 4:]) / num_obj
             total_loss = (
                 self.keypoint_weight * keypoint_loss
                 + self.offset_weight * offset_loss
