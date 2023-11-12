@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import resize
 
 from src.conf import InferenceConfig, TrainConfig
-from src.utils.common import nearest_valid_size, negative_sampling, random_crop
+from src.utils.common import nearest_valid_size, negative_sampling, pad_if_needed, random_crop
 
 
 ###################
@@ -75,8 +75,12 @@ class DETRTrainDataset(Dataset):
             pos = negative_sampling(this_event_df, n_steps)
 
         # crop
-        start, end = random_crop(pos, self.cfg.duration, n_steps)
-        feature = this_feature[start:end]  # (duration, num_features)
+        if n_steps > self.cfg.duration:
+            start, end = random_crop(pos, self.cfg.duration, n_steps)
+            feature = this_feature[start:end]
+        else:
+            start, end = 0, self.cfg.duration
+            feature = pad_if_needed(this_feature, self.cfg.duration)
 
         # upsample
         feature = torch.FloatTensor(feature.T).unsqueeze(0)  # (1, num_features, duration)
