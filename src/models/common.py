@@ -4,6 +4,7 @@ import torch.nn as nn
 
 from src.conf import DecoderConfig, FeatureExtractorConfig, InferenceConfig, TrainConfig
 from src.models.base import BaseModel
+from src.models.centernet import CenterNet
 from src.models.decoder.lstmdecoder import LSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
@@ -132,6 +133,20 @@ def get_model(
             nheads=cfg.model.params["nheads"],
             num_encoder_layers=cfg.model.params["num_encoder_layers"],
             num_decoder_layers=cfg.model.params["num_decoder_layers"],
+        )
+    elif cfg.model.name == "CenterNet":
+        feature_extractor = get_feature_extractor(
+            cfg.feature_extractor, feature_dim, num_timesteps
+        )
+        decoder = get_decoder(cfg.decoder, feature_extractor.height, 6, num_timesteps)
+        model = CenterNet(
+            feature_extractor=feature_extractor,
+            decoder=decoder,
+            in_channels=feature_extractor.out_chans,
+            mixup_alpha=cfg.aug.mixup_alpha,
+            cutmix_alpha=cfg.aug.cutmix_alpha,
+            encoder_weights=cfg.model.params["encoder_weights"] if not test else None,
+            encoder_name=cfg.model.params["encoder_name"],
         )
     else:
         raise ValueError(f"Invalid model name: {cfg.model.name}")
