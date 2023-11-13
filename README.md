@@ -113,8 +113,8 @@ The feature_extractor and decoder that can be specified are as follows
 
 - Spec2DCNN: Segmentation through UNet.
 - Spec1D: Segmentation without UNet
-- DETR2DCNN: Use UNet to detect sleep as in DETR. This model is still under development.
-- CenterNet: Detect onset and offset, respectively, like CenterNet using UNet
+- DETR2DCNN: Use UNet to detect sleep as in [DETR](https://arxiv.org/abs/2005.12872). This model is still under development.
+- CenterNet: Detect onset and offset, respectively, like [CenterNet](https://arxiv.org/abs/1904.07850) using UNet
 
 The correspondence table between each model and dataset is as follows.
 
