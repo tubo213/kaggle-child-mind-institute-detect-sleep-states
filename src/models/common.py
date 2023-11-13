@@ -107,7 +107,8 @@ def get_model(
         feature_extractor = get_feature_extractor(
             cfg.feature_extractor, feature_dim, num_timesteps
         )
-        decoder = get_decoder(cfg.decoder, feature_extractor.height, n_classes, num_timesteps)
+        n_channels = feature_extractor.out_chans * feature_extractor.height
+        decoder = get_decoder(cfg.decoder, n_channels, n_classes, num_timesteps)
         model = Spec1D(
             feature_extractor=feature_extractor,
             decoder=decoder,

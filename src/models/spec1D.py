@@ -20,7 +20,6 @@ class Spec1D(BaseModel):
         super().__init__()
         self.feature_extractor = feature_extractor
         self.decoder = decoder
-        self.channels_fc = nn.Linear(feature_extractor.out_chans, 1)
         self.mixup = Mixup(mixup_alpha)
         self.cutmix = Cutmix(cutmix_alpha)
         self.loss_fn = nn.BCEWithLogitsLoss()
@@ -39,10 +38,9 @@ class Spec1D(BaseModel):
         if do_cutmix and labels is not None:
             x, labels = self.cutmix(x, labels)
 
-        # pool over n_channels dimension
         x = x.transpose(1, 3)  # (batch_size, n_timesteps, height, n_channels)
-        x = self.channels_fc(x)  # (batch_size, n_timesteps, height, 1)
-        x = x.squeeze(-1).transpose(1, 2)  # (batch_size, height, n_timesteps)
+        x = x.flatten(2, 3)  # (batch_size, n_timesteps, height * n_channels)
+        x = x.transpose(1, 2)  # (batch_size, height * n_channels, n_timesteps)
         logits = self.decoder(x)  # (batch_size, n_timesteps, n_classes)
 
         if labels is not None:
