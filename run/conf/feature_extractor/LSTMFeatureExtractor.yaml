@@ -3,3 +3,4 @@ params:
   hidden_size: 64
   num_layers: 2
   bidirectional: true
+  stride: ${downsample_rate}
