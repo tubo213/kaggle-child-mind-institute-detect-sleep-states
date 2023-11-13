@@ -76,7 +76,6 @@ The following commands perform experiments with downsample_rate of 2, 4, 6, and 
 rye run python run/train.py -m downsample_rate=2,4,6,8
 ```
 
-
 ## Upload Model
 ```bash
 rye run python tools/upload_dataset.py
@@ -86,4 +85,48 @@ rye run python tools/upload_dataset.py
 The following commands are for inference of LB0.714 
 ```bash
 rye run python run/inference.py dir=kaggle exp_name=exp001 weight.run_name=single downsample_rate=2 duration=5760 model.params.encoder_weights=null pp.score_th=0.005 pp.distance=40 phase=test
+```
+
+## Implemented models
+
+The model is built with two components: feature_extractor and decoder.
+
+The feature_extractor and decoder that can be specified are as follows
+
+### Feature Extractor
+
+- [CNNSpectrogram](https://github.com/analokmaus/kaggle-g2net-public/tree/main/models1d_pytorch)
+- LSTMFeatureExtractor
+- [PANNsFeatureExtractor](https://arxiv.org/abs/1912.10211)
+- SpecFeatureExtractor
+
+### Decoder
+
+- MLPDecoder
+- LSTMDecoder
+- TransformerDecoder
+- TransformerCNNDecoder
+- [UNet1DDecoder](https://github.com/bamps53/kaggle-dfl-3rd-place-solution/blob/master/models/cnn_3d.py)
+- MLPDecoder
+
+### Model
+
+- Spec2DCNN: Segmentation through UNet.
+- Spec1D: Segmentation without UNet
+- DETR2DCNN: Use UNet to detect sleep as in DETR. This model is still under development.
+- CenterNet: Detect onset and offset, respectively, like CenterNet using UNet
+
+The correspondence table between each model and dataset is as follows.
+
+| model     | dataset   | 
+| --------- | --------- | 
+| Spec1D    | seg       | 
+| Spec2DCNN | seg       | 
+| DETR2DCNN | detr      | 
+| CenterNet | centernet | 
+
+The command to train CenterNet with feature_extractor=CNNSpectrogram, decoder=UNet1DDecoder is as follows
+
+```bash
+rye run python run/train.py model=CenterNet dataset=centernet feature_extractor=CNNSpectrogram decoder=UNet1DDecoder
 ```
