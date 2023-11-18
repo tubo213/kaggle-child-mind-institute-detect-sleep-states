@@ -2,38 +2,20 @@
 
 This repository is for [Child Mind Institute - Detect Sleep States](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/overview)
 
-## Build Environment
-### 1. install [rye](https://github.com/mitsuhiko/rye)
+## Development Setup
 
-[install documentation](https://rye-up.com/guide/installation/#installing-rye)
+This repository uses [Poetry](https://python-poetry.org/) for dependency management.
 
-MacOS
-```zsh
-curl -sSf https://rye-up.com/get | bash
-echo 'source "$HOME/.rye/env"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-Linux
-```bash
-curl -sSf https://rye-up.com/get | bash
-echo 'source "$HOME/.rye/env"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-Windows  
-see [install documentation](https://rye-up.com/guide/installation/)
-
-### 2. Create virtual environment
+### Install dependencies
 
 ```bash
-rye sync
+poetry install
 ```
 
-### 3. Activate virtual environment
+### Activate virtual environment
 
 ```bash
-. .venv/bin/activate
+poetry shell
 ```
 
 ### Set path
@@ -60,31 +42,31 @@ unzip child-mind-institute-detect-sleep-states.zip
 ### 2. Preprocess data
 
 ```bash
-rye run python run/prepare_data.py -m phase=train,test
+poetry run python run/prepare_data.py -m phase=train,test
 ```
 
 ## Train Model
 The following commands are for training the model of LB0.714
 ```bash
-rye run python run/train.py downsample_rate=2 duration=5760 exp_name=exp001 dataset.batch_size=32
+poetry run python run/train.py downsample_rate=2 duration=5760 exp_name=exp001 dataset.batch_size=32
 ```
 
 You can easily perform experiments by changing the parameters because [hydra](https://hydra.cc/docs/intro/) is used.
 The following commands perform experiments with downsample_rate of 2, 4, 6, and 8.
 
 ```bash
-rye run python run/train.py -m downsample_rate=2,4,6,8
+poetry run python run/train.py -m downsample_rate=2,4,6,8
 ```
 
 ## Upload Model
 ```bash
-rye run python tools/upload_dataset.py
+poetry run python tools/upload_dataset.py
 ```
 
 ## Inference
 The following commands are for inference of LB0.714 
 ```bash
-rye run python run/inference.py dir=kaggle exp_name=exp001 weight.run_name=single downsample_rate=2 duration=5760 model.params.encoder_weights=null pp.score_th=0.005 pp.distance=40 phase=test
+poetry run python run/inference.py dir=kaggle exp_name=exp001 weight.run_name=single downsample_rate=2 duration=5760 model.params.encoder_weights=null pp.score_th=0.005 pp.distance=40 phase=test
 ```
 
 ## Implemented models
@@ -128,5 +110,5 @@ The correspondence table between each model and dataset is as follows.
 The command to train CenterNet with feature_extractor=CNNSpectrogram, decoder=UNet1DDecoder is as follows
 
 ```bash
-rye run python run/train.py model=CenterNet dataset=centernet feature_extractor=CNNSpectrogram decoder=UNet1DDecoder
+poetry run python run/train.py model=CenterNet dataset=centernet feature_extractor=CNNSpectrogram decoder=UNet1DDecoder
 ```
