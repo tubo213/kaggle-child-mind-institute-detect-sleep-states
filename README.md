@@ -18,15 +18,10 @@ poetry install
 poetry shell
 ```
 
-### Set path
-Rewrite run/conf/dir/local.yaml to match your environment
+### Setup local configs
 
-```yaml
-data_dir: 
-processed_dir: 
-output_dir: 
-model_dir: 
-sub_dir: ./
+```
+sh scripts/setup_local_conf.sh
 ```
 
 ## Prepare Data
