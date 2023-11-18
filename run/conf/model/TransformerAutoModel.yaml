@@ -1,0 +1,5 @@
+name: TransformerAutoModel
+params:
+  model_name: "microsoft/deberta-v3-small" #  推論時はinternet offなので、datasetから取得したconfigを使う
+  hidden_size: 120
+  stride: ${downsample_rate}
