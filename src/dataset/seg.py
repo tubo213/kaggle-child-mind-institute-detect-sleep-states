@@ -8,8 +8,14 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import resize
 
 from src.conf import InferenceConfig, TrainConfig
-from src.utils.common import gaussian_label, nearest_valid_size, negative_sampling, random_crop
-from src.utils.common import pad_if_needed
+from src.utils.common import (
+    gaussian_label,
+    nearest_valid_size,
+    negative_sampling,
+    pad_if_needed,
+    random_crop,
+)
+
 
 ###################
 # Label
