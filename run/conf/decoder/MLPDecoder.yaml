@@ -1,2 +1,4 @@
 name: MLPDecoder
 params:
+    hidden_size: 128
+    num_layers: 3

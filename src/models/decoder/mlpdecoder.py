@@ -4,11 +4,28 @@ import torch.nn.functional as F
 
 
 class MLPDecoder(nn.Module):
-    def __init__(self, n_channels: int, n_classes: int):
+    def __init__(self, 
+        n_channels: int,
+        hidden_size: int,
+        num_layers: int,
+        n_classes: int
+    ):
         super(MLPDecoder, self).__init__()
-        self.fc1 = nn.Linear(n_channels, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, n_classes)
+        
+        self.num_hidden_layers = num_layers - 1
+        
+        assert num_layers >= 3
+        self.mlp = []
+        for i in range(num_layers):
+            if i == 0: 
+                self.mlp.append(nn.Linear(n_channels, hidden_size))
+                self.mlp.append(nn.GELU())
+            elif i == num_layers - 1: 
+                self.mlp.append(nn.Linear(hidden_size, n_classes))
+            else:
+                self.mlp.append(nn.Linear(hidden_size, hidden_size))
+                self.mlp.append(nn.GELU())
+        self.mlp = nn.ModuleList(*self.mlp)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model.
@@ -20,9 +37,6 @@ class MLPDecoder(nn.Module):
             torch.Tensor: (batch_size, n_timesteps, n_classes)
         """
         x = x.transpose(1, 2)
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, p=0.5)
-        x = F.relu(self.fc2(x))
-        x = F.dropout(x, p=0.5)
-        x = self.fc3(x)
+        for layer in self.mlp:
+            x = layer(x)
         return x

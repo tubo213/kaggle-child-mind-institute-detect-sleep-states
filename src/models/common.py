@@ -77,7 +77,11 @@ def get_decoder(
             **cfg.params,
         )
     elif cfg.name == "MLPDecoder":
-        decoder = MLPDecoder(n_channels=n_channels, n_classes=n_classes)
+        decoder = MLPDecoder(
+            n_channels=n_channels, 
+            n_classes=n_classes,
+            **cfg.params,
+    )
     elif cfg.name == "TransformerCNNDecoder":
         decoder = TransformerCNNDecoder(
             input_size=n_channels,
