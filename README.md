@@ -115,6 +115,9 @@ The feature_extractor and decoder that can be specified are as follows
 - Spec1D: Segmentation without UNet
 - DETR2DCNN: Use UNet to detect sleep as in [DETR](https://arxiv.org/abs/2005.12872). This model is still under development.
 - CenterNet: Detect onset and offset, respectively, like [CenterNet](https://arxiv.org/abs/1904.07850) using UNet
+- TransformerAutoModel: 
+  - Segmentation using huggingface's [AutoModel](https://huggingface.co/transformers/v3.0.2/model_doc/auto.html). don't use feature_extractor and decoder.
+  -  Since the Internet is not available during inference, it is necessary to create a config dataset and specify the path in the model_name.
 
 The correspondence table between each model and dataset is as follows.
 
@@ -124,6 +127,7 @@ The correspondence table between each model and dataset is as follows.
 | Spec2DCNN | seg       | 
 | DETR2DCNN | detr      | 
 | CenterNet | centernet | 
+| TransformerAutoModel | seg |
 
 The command to train CenterNet with feature_extractor=CNNSpectrogram, decoder=UNet1DDecoder is as follows
 
