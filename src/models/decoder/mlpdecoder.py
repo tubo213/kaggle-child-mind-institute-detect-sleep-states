@@ -25,7 +25,7 @@ class MLPDecoder(nn.Module):
             else:
                 self.mlp.append(nn.Linear(hidden_size, hidden_size))
                 self.mlp.append(nn.GELU())
-        self.mlp = nn.Sequential(*self.mlp)
+        self.mlp = nn.ModuleList(*self.mlp)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the model.
@@ -37,5 +37,6 @@ class MLPDecoder(nn.Module):
             torch.Tensor: (batch_size, n_timesteps, n_classes)
         """
         x = x.transpose(1, 2)
-        x = self.mlp(x)
+        for layer in self.mlp:
+            x = layer(x)
         return x
