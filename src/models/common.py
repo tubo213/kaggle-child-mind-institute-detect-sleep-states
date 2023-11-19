@@ -7,6 +7,7 @@ from src.models.base import BaseModel
 from src.models.centernet import CenterNet
 from src.models.decoder.lstmdecoder import LSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
+from src.models.decoder.residuallstmdecoder import ResidualLSTMDecoder
 from src.models.decoder.transformercnndecoder import TransformerCNNDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
@@ -23,7 +24,7 @@ FEATURE_EXTRACTOR_TYPE = Union[
     CNNSpectrogram, PANNsFeatureExtractor, LSTMFeatureExtractor, SpecFeatureExtractor
 ]
 DECODER_TYPE = Union[
-    UNet1DDecoder, LSTMDecoder, TransformerDecoder, MLPDecoder, TransformerCNNDecoder
+    UNet1DDecoder, LSTMDecoder, ResidualLSTMDecoder, TransformerDecoder, MLPDecoder, TransformerCNNDecoder
 ]
 
 
@@ -82,6 +83,12 @@ def get_decoder(
             n_classes=n_classes,
             **cfg.params,
     )
+    elif cfg.name == "ResidualLSTMDecoder":
+        decoder = ResidualLSTMDecoder(
+            input_size=n_channels,
+            n_classes=n_classes,
+            **cfg.params
+        )
     elif cfg.name == "TransformerCNNDecoder":
         decoder = TransformerCNNDecoder(
             input_size=n_channels,
