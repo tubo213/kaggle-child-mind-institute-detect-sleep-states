@@ -1,4 +1,4 @@
-name: ResidualLSTMDecoder
+name: ResLSTMDecoder
 params:
   hidden_size: 128
   num_layers: 2

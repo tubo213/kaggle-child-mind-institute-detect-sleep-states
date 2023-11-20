@@ -31,7 +31,7 @@ class ResidualLSTM(nn.Module):
         x = res + x
         return x
         
-class ResidualLSTMDecoder(nn.Module):
+class ResLSTMDecoder(nn.Module):
     def __init__(
         self,
         input_size: int,

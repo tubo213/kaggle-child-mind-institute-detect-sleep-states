@@ -7,7 +7,7 @@ from src.models.base import BaseModel
 from src.models.centernet import CenterNet
 from src.models.decoder.lstmdecoder import LSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
-from src.models.decoder.residuallstmdecoder import ResidualLSTMDecoder
+from src.models.decoder.residuallstmdecoder import ResLSTMDecoder
 from src.models.decoder.transformercnndecoder import TransformerCNNDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
@@ -83,8 +83,8 @@ def get_decoder(
             n_classes=n_classes,
             **cfg.params,
     )
-    elif cfg.name == "ResidualLSTMDecoder":
-        decoder = ResidualLSTMDecoder(
+    elif cfg.name == "ResLSTMDecoder":
+        decoder = ResLSTMDecoder(
             input_size=n_channels,
             n_classes=n_classes,
             **cfg.params
