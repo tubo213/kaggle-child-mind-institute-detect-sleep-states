@@ -24,7 +24,7 @@ FEATURE_EXTRACTOR_TYPE = Union[
     CNNSpectrogram, PANNsFeatureExtractor, LSTMFeatureExtractor, SpecFeatureExtractor
 ]
 DECODER_TYPE = Union[
-    UNet1DDecoder, LSTMDecoder, ResidualLSTMDecoder, TransformerDecoder, MLPDecoder, TransformerCNNDecoder
+    UNet1DDecoder, LSTMDecoder, ResLSTMDecoder, TransformerDecoder, MLPDecoder, TransformerCNNDecoder
 ]
 
 
