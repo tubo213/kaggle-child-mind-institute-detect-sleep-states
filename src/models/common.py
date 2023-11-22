@@ -15,14 +15,16 @@ from src.models.feature_extractor.cnn import CNNSpectrogram
 from src.models.feature_extractor.lstm import LSTMFeatureExtractor
 from src.models.feature_extractor.panns import PANNsFeatureExtractor
 from src.models.feature_extractor.spectrogram import SpecFeatureExtractor
+from src.models.decoder.newunet import ResAttnUNet1DDecoder
 from src.models.spec1D import Spec1D
 from src.models.spec2Dcnn import Spec2DCNN
+from src.models.newspec2dcnn import NewSpec2DCNN
 
 FEATURE_EXTRACTOR_TYPE = Union[
     CNNSpectrogram, PANNsFeatureExtractor, LSTMFeatureExtractor, SpecFeatureExtractor
 ]
 DECODER_TYPE = Union[
-    UNet1DDecoder, LSTMDecoder, TransformerDecoder, MLPDecoder, TransformerCNNDecoder
+    UNet1DDecoder, LSTMDecoder, TransformerDecoder, MLPDecoder, TransformerCNNDecoder, ResAttnUNet1DDecoder,
 ]
 
 
@@ -83,6 +85,10 @@ def get_decoder(
             n_classes=n_classes,
             **cfg.params,
         )
+    
+    # add 
+    elif cfg.name == 'ResAttnUNet1DDecoder':
+        decoder = ResAttnUNet1DDecoder(n_channels=n_channels, n_classes=n_classes, duration=num_timesteps, **cfg.params,)
     else:
         raise ValueError(f"Invalid decoder name: {cfg.name}")
 
@@ -149,6 +155,22 @@ def get_model(
         if test:
             cfg.model.params["encoder_weights"] = None
         model = CenterNet(
+            feature_extractor=feature_extractor,
+            decoder=decoder,
+            in_channels=feature_extractor.out_chans,
+            mixup_alpha=cfg.aug.mixup_alpha,
+            cutmix_alpha=cfg.aug.cutmix_alpha,
+            **cfg.model.params,
+        )
+
+    elif cfg.model.name == 'NewSpec2DCNN':
+        feature_extractor = get_feature_extractor(
+            cfg.feature_extractor, feature_dim, num_timesteps
+        )
+        decoder = get_decoder(cfg.decoder, feature_extractor.height, n_classes, num_timesteps)
+        if test:
+            cfg.model.params["encoder_weights"] = None
+        model = NewSpec2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
             in_channels=feature_extractor.out_chans,

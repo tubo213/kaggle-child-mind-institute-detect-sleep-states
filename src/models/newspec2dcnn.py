@@ -10,7 +10,7 @@ from src.models.base import BaseModel
 from src.models.decoder.newunet import ResAttnUNet1DDecoder
 from src.models.feature_extractor.spectrogram import SpecFeatureExtractor
 
-class Spec2DCNN(BaseModel):
+class NewSpec2DCNN(BaseModel):
     def __init__(
         self,
         feature_extractor: nn.Module,
@@ -64,7 +64,7 @@ class Spec2DCNN(BaseModel):
         return resize(labels, size=[org_duration, labels.shape[-1]], antialias=False)[:, :, [1, 2]]
 
 
-# Assuming you have the necessary feature_extractor and other configurations
-feature_extractor = SpecFeatureExtractor(height=, out_chans=)
-decoder = ResAttnUNet1DDecoder(n_channels=…, n_classes=…, duration=…)
-model = Spec2DCNN(feature_extractor=feature_extractor, decoder=decoder, encoder_name=…, in_channels=…, encoder_weights=…)
+# # Assuming you have the necessary feature_extractor and other configurations
+# feature_extractor = SpecFeatureExtractor(height=, out_chans=)
+# decoder = ResAttnUNet1DDecoder(n_channels=…, n_classes=…, duration=…)
+# model = Spec2DCNN(feature_extractor=feature_extractor, decoder=decoder, encoder_name=…, in_channels=…, encoder_weights=…)

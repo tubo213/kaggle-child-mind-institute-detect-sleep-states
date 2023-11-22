@@ -25,14 +25,15 @@ class SEModule(nn.Module):
 def create_layer_norm(channel, length):
     return nn.LayerNorm([channel, length])
 
+# new version 
 class ResidualBlock(nn.Module):
-    def __init__(self, inputChannel, outputChannel, stride=1, downsample=None):
+    def __init__(self, inputChannel, outputChannel, stride=1, downsample=None, norm=None):
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv1d(inputChannel, outputChannel, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm1d(outputChannel)
+        self.bn1 = norm(outputChannel) if norm else nn.BatchNorm1d(outputChannel)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv1d(outputChannel, outputChannel, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm1d(outputChannel)
+        self.bn2 = norm(outputChannel) if norm else nn.BatchNorm1d(outputChannel)
         self.downsample = downsample
         self.ca = SEModule(outputChannel)
         
@@ -50,6 +51,33 @@ class ResidualBlock(nn.Module):
         caOutput = self.ca(out)
         out = caOutput * out
         return out
+
+
+# class ResidualBlock(nn.Module):
+#     def __init__(self, inputChannel, outputChannel, stride=1, downsample=None):
+#         super(ResidualBlock, self).__init__()
+#         self.conv1 = nn.Conv1d(inputChannel, outputChannel, kernel_size=3, stride=stride, padding=1, bias=False)
+#         self.bn1 = nn.BatchNorm1d(outputChannel)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.conv2 = nn.Conv1d(outputChannel, outputChannel, kernel_size=3, stride=1, padding=1, bias=False)
+#         self.bn2 = nn.BatchNorm1d(outputChannel)
+#         self.downsample = downsample
+#         self.ca = SEModule(outputChannel)
+        
+#     def forward(self, x):
+#         residual = x
+#         out = self.conv1(x)
+#         out = self.bn1(out)
+#         out = self.relu(out)
+#         out = self.conv2(out)
+#         out = self.bn2(out)
+#         if self.downsample:
+#             residual = self.downsample(x)
+#         out += residual
+#         out = self.relu(out)
+#         caOutput = self.ca(out)
+#         out = caOutput * out
+#         return out
 
 class Down(nn.Module):
     """Downscaling with maxpool then residual block"""
@@ -108,6 +136,9 @@ class ResAttnUNet1DDecoder(nn.Module):
         self.se = se
         self.res = res
         self.scale_factor = scale_factor
+
+
+        
 
         factor = 2 if bilinear else 1
         self.inc = ResidualBlock(

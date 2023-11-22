@@ -9,17 +9,26 @@ hydra:
     dir: ${dir.output_dir}/${hydra.job.name}/${exp_name}
     subdir: run${hydra.job.num}
 
+# defaults:
+#   - _self_
+#   - dir: local
+#   - dataset: seg
+#   - model: Spec2DCNN
+#   - feature_extractor: CNNSpectrogram
+#   - decoder: UNet1DDecoder
+#   - split: fold_0
+
 defaults:
   - _self_
-  - dir: local
+  - dir: local 
   - dataset: seg
-  - model: Spec2DCNN
+  - model: NewSpec2DCNN
   - feature_extractor: CNNSpectrogram
-  - decoder: UNet1DDecoder
+  - decoder: ResAttnUNet1DDecoder 
   - split: fold_0
 
 seed: 42
-exp_name: dummy
+exp_name: mytest
 batch_size: 32
 num_workers: 24
 duration: 5760 # duration * 5 = 秒数
