@@ -138,40 +138,41 @@ class UNet1DDecoder(nn.Module):
             self.n_channels, 64, norm=partial(create_layer_norm, length=self.duration)
         )
         self.down1 = Down(
-            64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // 2)
+            64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // scale_factor), se=se, res=res
         )
         self.down2 = Down(
-            128, 256, scale_factor, norm=partial(create_layer_norm, length=self.duration // 4)
+            128, 256, scale_factor, norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,2)), se=se, res=res
         )
         self.down3 = Down(
-            256, 512, scale_factor, norm=partial(create_layer_norm, length=self.duration // 8)
+            256, 512, scale_factor, norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,3)), se=se, res=res
         )
         self.down4 = Down(
             512,
             1024 // factor,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 16),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,4)),
+            se=se, res=res
         )
         self.up1 = Up(
             1024,
             512 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 8),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,3)),
         )
         self.up2 = Up(
             512,
             256 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 4),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,2)),
         )
         self.up3 = Up(
             256,
             128 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 2),
+            norm=partial(create_layer_norm, length=self.duration // scale_factor,
         )
         self.up4 = Up(
             128, 64, bilinear, scale_factor, norm=partial(create_layer_norm, length=self.duration)
