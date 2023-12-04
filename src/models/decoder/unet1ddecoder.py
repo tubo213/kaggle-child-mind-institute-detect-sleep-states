@@ -172,7 +172,7 @@ class UNet1DDecoder(nn.Module):
             128 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // scale_factor,
+            norm=partial(create_layer_norm, length=self.duration // scale_factor),
         )
         self.up4 = Up(
             128, 64, bilinear, scale_factor, norm=partial(create_layer_norm, length=self.duration)
