@@ -12,7 +12,7 @@ def get_rand_1dbbox(n_timesteps: int, lam: float) -> tuple[int, int]:
     Returns:
         tuple[int, int]: (start, end) of the bounding box.
     """
-    cut_rat = np.sqrt(1.0 - lam)
+    cut_rat = 1.0 - lam
     cut_len = int(n_timesteps * cut_rat)
 
     start = np.random.randint(0, n_timesteps - cut_len)
